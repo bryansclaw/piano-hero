@@ -24,6 +24,7 @@ import { useMidi } from '../hooks/useMidi';
 import { useSongLoader } from '../hooks/useSongLoader';
 import { useGameEngine } from '../hooks/useGameEngine';
 import { usePracticeTools } from '../hooks/usePracticeTools';
+import { usePianoAudio } from '../hooks/usePianoAudio';
 import { useTheme } from '../hooks/useTheme';
 import { createInitialScore } from '../engine/scoring';
 import { generatePerformanceReport, savePerformanceReport, getImprovementInsight } from '../engine/performanceAnalyzer';
@@ -175,6 +176,17 @@ const App: React.FC = () => {
   );
 
   const midi = useMidi(onMidiNoteOn);
+  const pianoAudio = usePianoAudio(volume);
+
+  // Track locally-pressed notes (mouse/keyboard clicks) for visual feedback
+  const [localActiveNotes, setLocalActiveNotes] = useState<Set<number>>(new Set());
+
+  // Merged active notes = MIDI hardware + local mouse/keyboard
+  const mergedActiveNotes = useMemo(() => {
+    const merged = new Set(midi.activeNotes);
+    for (const n of localActiveNotes) merged.add(n);
+    return merged;
+  }, [midi.activeNotes, localActiveNotes]);
 
   // Auto-pause game when MIDI disconnects
   useEffect(() => {
@@ -331,6 +343,17 @@ const App: React.FC = () => {
 
   const handleKeyboardNoteOn = useCallback(
     (note: number) => {
+      // Visual feedback — add to local active notes
+      setLocalActiveNotes(prev => {
+        const next = new Set(prev);
+        next.add(note);
+        return next;
+      });
+
+      // Play sound
+      pianoAudio.noteOn(note);
+
+      // Feed into game engine
       const event: MidiNoteEvent = {
         note,
         velocity: 100,
@@ -339,7 +362,19 @@ const App: React.FC = () => {
       };
       onMidiNoteOn(event);
     },
-    [onMidiNoteOn],
+    [onMidiNoteOn, pianoAudio],
+  );
+
+  const handleKeyboardNoteOff = useCallback(
+    (note: number) => {
+      setLocalActiveNotes(prev => {
+        const next = new Set(prev);
+        next.delete(note);
+        return next;
+      });
+      pianoAudio.noteOff(note);
+    },
+    [pianoAudio],
   );
 
   const handleUpdateProfile = useCallback((updates: Partial<PlayerProfile>) => {
@@ -555,9 +590,10 @@ const App: React.FC = () => {
                   </p>
                   <SheetMusic notes={currentNotes} currentTime={0} />
                   <PianoKeyboard
-                    activeNotes={midi.activeNotes}
+                    activeNotes={mergedActiveNotes}
                     showNoteNames={showNoteNames}
                     onNoteOn={handleKeyboardNoteOn}
+                    onNoteOff={handleKeyboardNoteOff}
                   />
                 </div>
                 {/* Right: Practice Tools sidebar */}
@@ -708,9 +744,10 @@ const App: React.FC = () => {
 
                 <div className="max-w-6xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-3">
                   <PianoKeyboard
-                    activeNotes={midi.activeNotes}
+                    activeNotes={mergedActiveNotes}
                     showNoteNames={showNoteNames}
                     onNoteOn={handleKeyboardNoteOn}
+                    onNoteOff={handleKeyboardNoteOff}
                   />
                 </div>
 
