@@ -1,67 +1,107 @@
 import { useRef, useCallback } from 'react';
-import * as Tone from 'tone';
 
 /**
- * Hook that provides a polyphonic piano synth for playing notes.
- * Uses Tone.js PolySynth for multi-note support.
+ * Simple piano audio using raw Web Audio API.
+ * No external dependencies. Works reliably across browsers.
  */
+
+// Convert MIDI note to frequency
+function midiToFreq(midi: number): number {
+  return 440 * Math.pow(2, (midi - 69) / 12);
+}
+
 export function usePianoAudio(volume: number = 80) {
-  const synthRef = useRef<Tone.PolySynth | null>(null);
-  const startedRef = useRef(false);
+  const ctxRef = useRef<AudioContext | null>(null);
+  const activeRef = useRef<Map<number, { osc: OscillatorNode; gain: GainNode }>>(new Map());
 
-  const ensureSynth = useCallback(async () => {
-    // Tone.js requires a user gesture to start audio context
-    if (!startedRef.current) {
-      await Tone.start();
-      startedRef.current = true;
+  const getContext = useCallback((): AudioContext => {
+    if (!ctxRef.current) {
+      ctxRef.current = new AudioContext();
     }
-
-    if (!synthRef.current) {
-      synthRef.current = new Tone.PolySynth(Tone.Synth, {
-        oscillator: { type: 'triangle' },
-        envelope: {
-          attack: 0.005,
-          decay: 0.3,
-          sustain: 0.4,
-          release: 0.8,
-        },
-      }).toDestination();
+    // Resume if suspended (browser autoplay policy)
+    if (ctxRef.current.state === 'suspended') {
+      ctxRef.current.resume();
     }
-
-    // Update volume (-60 to 0 dB range)
-    synthRef.current.volume.value = -60 + (volume / 100) * 60;
-
-    return synthRef.current;
-  }, [volume]);
+    return ctxRef.current;
+  }, []);
 
   const noteOn = useCallback((midiNote: number, velocity: number = 100) => {
-    // Fire-and-forget — don't block on async
-    ensureSynth().then(synth => {
-      const freq = Tone.Frequency(midiNote, 'midi').toFrequency();
-      const vel = Math.max(0.01, velocity / 127);
-      synth.triggerAttack(freq, Tone.now(), vel);
-    }).catch(err => {
-      console.warn('[PianoAudio] Failed to play note:', err);
-    });
-  }, [ensureSynth]);
+    try {
+      const ctx = getContext();
+
+      // Stop existing note if still playing (prevent overlaps on same key)
+      const existing = activeRef.current.get(midiNote);
+      if (existing) {
+        try {
+          existing.osc.stop();
+          existing.osc.disconnect();
+          existing.gain.disconnect();
+        } catch { /* already stopped */ }
+        activeRef.current.delete(midiNote);
+      }
+
+      const freq = midiToFreq(midiNote);
+      const vol = (volume / 100) * (velocity / 127) * 0.3; // 0.3 max to avoid clipping
+
+      // Create oscillator — triangle wave sounds piano-like
+      const osc = ctx.createOscillator();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(freq, ctx.currentTime);
+
+      // Gain envelope for natural attack/decay
+      const gain = ctx.createGain();
+      gain.gain.setValueAtTime(0, ctx.currentTime);
+      gain.gain.linearRampToValueAtTime(vol, ctx.currentTime + 0.01); // Fast attack
+      gain.gain.exponentialRampToValueAtTime(vol * 0.6, ctx.currentTime + 0.1); // Quick decay
+      gain.gain.exponentialRampToValueAtTime(vol * 0.3, ctx.currentTime + 0.5); // Sustain decay
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(ctx.currentTime);
+
+      activeRef.current.set(midiNote, { osc, gain });
+
+      // Auto-stop after 3 seconds if noteOff never called
+      setTimeout(() => {
+        const entry = activeRef.current.get(midiNote);
+        if (entry && entry.osc === osc) {
+          try {
+            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
+            osc.stop(ctx.currentTime + 0.3);
+          } catch { /* already stopped */ }
+          activeRef.current.delete(midiNote);
+        }
+      }, 3000);
+    } catch (err) {
+      console.warn('[PianoAudio] noteOn failed:', err);
+    }
+  }, [getContext, volume]);
 
   const noteOff = useCallback((midiNote: number) => {
-    // Only release if synth already exists (don't create one just to release)
-    if (synthRef.current && startedRef.current) {
-      try {
-        const freq = Tone.Frequency(midiNote, 'midi').toFrequency();
-        synthRef.current.triggerRelease(freq, Tone.now());
-      } catch (err) {
-        console.warn('[PianoAudio] Failed to release note:', err);
+    const entry = activeRef.current.get(midiNote);
+    if (!entry) return;
+
+    try {
+      const ctx = ctxRef.current;
+      if (ctx) {
+        // Fade out over 200ms for natural release
+        entry.gain.gain.cancelScheduledValues(ctx.currentTime);
+        entry.gain.gain.setValueAtTime(entry.gain.gain.value, ctx.currentTime);
+        entry.gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.2);
+        entry.osc.stop(ctx.currentTime + 0.2);
+      } else {
+        entry.osc.stop();
       }
-    }
+    } catch { /* already stopped */ }
+
+    activeRef.current.delete(midiNote);
   }, []);
 
   const allNotesOff = useCallback(() => {
-    if (synthRef.current) {
-      synthRef.current.releaseAll();
+    for (const [note] of activeRef.current) {
+      noteOff(note);
     }
-  }, []);
+  }, [noteOff]);
 
   return { noteOn, noteOff, allNotesOff };
 }
