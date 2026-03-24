@@ -196,7 +196,13 @@ function hashString(s: string): number {
   return Math.abs(hash) || 1;
 }
 
-export function generateMockLeaderboard(songId: string, playerScore?: number, playerName = 'You'): LeaderboardEntry[] {
+export function generateMockLeaderboard(
+  songId: string,
+  playerScore?: number,
+  playerName = 'You',
+  playerAccuracy?: number,
+  playerStars?: number,
+): LeaderboardEntry[] {
   const rand = seededRandom(hashString(songId));
   const entries: LeaderboardEntry[] = [];
 
@@ -220,17 +226,29 @@ export function generateMockLeaderboard(songId: string, playerScore?: number, pl
       rank: 0,
       username: playerName,
       score: playerScore,
-      accuracy: 0,
-      stars: 0,
+      accuracy: playerAccuracy ?? 0,
+      stars: playerStars ?? 0,
       date: new Date().toISOString(),
       isPlayer: true,
     });
   }
 
+  // Sort by score descending — player entry merges naturally with mocks
   entries.sort((a, b) => b.score - a.score);
   entries.forEach((e, i) => { e.rank = i + 1; });
 
-  return entries.slice(0, 20);
+  // Keep top 20, but always include player if they exist
+  if (entries.length > 20) {
+    const playerEntry = entries.find(e => e.isPlayer);
+    const top20 = entries.slice(0, 20);
+    if (playerEntry && !top20.includes(playerEntry)) {
+      // Player ranked below top 20 — replace last mock entry
+      top20[19] = playerEntry;
+    }
+    return top20;
+  }
+
+  return entries;
 }
 
 export function getPlayerPercentile(leaderboard: LeaderboardEntry[]): number {

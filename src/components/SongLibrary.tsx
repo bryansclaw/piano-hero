@@ -82,8 +82,12 @@ const SongLibrary: React.FC<SongLibraryProps> = ({ onSelectSong, highScores }) =
           return (
             <div
               key={song.id}
-              className="group bg-white dark:bg-slate-800/60 rounded-xl p-5 border border-slate-200 dark:border-slate-700/50 hover:border-slate-300 dark:hover:border-slate-600 transition-all cursor-pointer hover:scale-[1.02] hover:shadow-lg dark:hover:shadow-cyan-500/5"
+              className="group bg-white dark:bg-slate-800/60 rounded-xl p-5 border border-slate-200 dark:border-slate-700/50 hover:border-slate-300 dark:hover:border-slate-600 transition-all cursor-pointer hover:scale-[1.02] hover:shadow-lg dark:hover:shadow-cyan-500/5 focus:outline-none focus:ring-2 focus:ring-cyan-500/40"
+              tabIndex={0}
+              role="button"
+              aria-label={`Play ${song.title} by ${song.artist}`}
               onClick={() => onSelectSong(song.id, filterDifficulty === 'all' ? 'easy' : filterDifficulty)}
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSelectSong(song.id, filterDifficulty === 'all' ? 'easy' : filterDifficulty); } }}
               data-testid={`song-card-${song.id}`}
             >
               {/* Album art placeholder */}
@@ -129,7 +133,7 @@ const SongLibrary: React.FC<SongLibraryProps> = ({ onSelectSong, highScores }) =
                   const stars = getStars(song.id, diff);
                   return (
                     <div key={diff} className="text-center">
-                      <div className={`w-2.5 h-2.5 rounded-full mx-auto mb-0.5 ${DIFF_COLORS[diff]}`} title={diff} />
+                      <div className={`w-2.5 h-2.5 rounded-full mx-auto mb-0.5 ${DIFF_COLORS[diff]}`} title={`${diff} difficulty`} role="img" aria-label={`${diff} difficulty${stars > 0 ? `, ${stars} stars` : ''}`} />
                       <div className="text-slate-400 dark:text-slate-500">
                         {stars > 0 ? (
                           <span className="text-amber-500 dark:text-amber-400 flex items-center gap-0.5">

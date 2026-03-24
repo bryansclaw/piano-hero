@@ -59,6 +59,20 @@ describe('Leaderboard', () => {
     expect(onAddFriend).toHaveBeenCalledWith('NewFriend');
   });
 
+  it('shows player rank in percentile display', () => {
+    render(<Leaderboard highScores={mockHighScores} friends={[]} playerName="TestPlayer" />);
+    const rankDisplay = screen.getByTestId('player-rank');
+    expect(rankDisplay).toBeInTheDocument();
+    expect(rankDisplay.textContent).toContain('You are #');
+  });
+
+  it('highlights player row in leaderboard', () => {
+    render(<Leaderboard highScores={mockHighScores} friends={[]} playerName="TestPlayer" />);
+    const rows = screen.getAllByTestId('leaderboard-row');
+    const playerRow = rows.find(row => row.textContent?.includes('(you)'));
+    expect(playerRow).toBeDefined();
+  });
+
   it('shows friends in friends tab', () => {
     const friends = [
       { username: 'Alice', avatarIndex: 0, level: 5, xp: 2000 },

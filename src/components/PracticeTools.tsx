@@ -29,8 +29,12 @@ const PracticeTools: React.FC<PracticeToolsProps> = ({
 }) => {
   return (
     <div className="bg-white dark:bg-slate-800/60 rounded-xl p-5 border border-slate-200 dark:border-slate-700/50 space-y-4" data-testid="practice-tools">
+      {/* Practice Tools Label */}
+      <div className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider" title="These tools are only active in Practice mode — they do not affect Game mode" data-testid="practice-tools-label">
+        🎯 Tools — practice only, not active in Game
+      </div>
       {/* Practice Mode Indicator */}
-      <div className="flex items-center gap-3 text-sm" data-testid="practice-indicator">
+      <div className="flex items-center gap-3 text-sm flex-wrap" data-testid="practice-indicator">
         <span className="bg-pink-500/10 text-pink-600 dark:text-pink-400 px-2.5 py-1 rounded-md text-xs font-bold">
           {state.autoSpeedUp ? `${state.currentAutoTempo}%` : `${state.tempoPercent}%`} tempo
         </span>

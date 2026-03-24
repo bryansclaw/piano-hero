@@ -9,6 +9,10 @@ interface UseMidiReturn {
   activeNotes: Set<number>;
   selectDevice: (id: string) => void;
   lastNote: MidiNoteEvent | null;
+  /** True when a previously-connected device disconnected unexpectedly */
+  wasDisconnected: boolean;
+  /** Clear the disconnection flag (e.g., after user dismisses reconnect prompt) */
+  clearDisconnected: () => void;
 }
 
 export function useMidi(onNoteOn?: (event: MidiNoteEvent) => void, onNoteOff?: (event: MidiNoteEvent) => void): UseMidiReturn {
@@ -18,9 +22,11 @@ export function useMidi(onNoteOn?: (event: MidiNoteEvent) => void, onNoteOff?: (
   const [isSupported] = useState(() => !!navigator.requestMIDIAccess);
   const [activeNotes, setActiveNotes] = useState<Set<number>>(new Set());
   const [lastNote, setLastNote] = useState<MidiNoteEvent | null>(null);
+  const [wasDisconnected, setWasDisconnected] = useState(false);
   const midiAccessRef = useRef<MIDIAccess | null>(null);
   const onNoteOnRef = useRef(onNoteOn);
   const onNoteOffRef = useRef(onNoteOff);
+  const wasConnectedRef = useRef(false);
 
   onNoteOnRef.current = onNoteOn;
   onNoteOffRef.current = onNoteOff;
@@ -77,6 +83,26 @@ export function useMidi(onNoteOn?: (event: MidiNoteEvent) => void, onNoteOff?: (
     if (!selectedDeviceId && deviceList.length > 0) {
       setSelectedDeviceId(deviceList[0].id);
     }
+
+    // Detect disconnection of the selected device
+    if (selectedDeviceId) {
+      const selectedDevice = deviceList.find(d => d.id === selectedDeviceId);
+      if (!selectedDevice || selectedDevice.state === 'disconnected') {
+        if (wasConnectedRef.current) {
+          // Device was connected and now disconnected
+          setWasDisconnected(true);
+          setIsConnected(false);
+          setActiveNotes(new Set());
+          wasConnectedRef.current = false;
+          console.warn('[PianoHero] MIDI device disconnected');
+        }
+      } else if (selectedDevice.state === 'connected') {
+        // Device reconnected — auto-reconnect
+        if (!wasConnectedRef.current) {
+          console.info('[PianoHero] MIDI device reconnected');
+        }
+      }
+    }
   }, [selectedDeviceId]);
 
   useEffect(() => {
@@ -115,9 +141,12 @@ export function useMidi(onNoteOn?: (event: MidiNoteEvent) => void, onNoteOff?: (
     });
 
     const input = access.inputs.get(selectedDeviceId);
-    if (input) {
+    if (input && input.state === 'connected') {
       input.onmidimessage = handleMidiMessage;
       setIsConnected(true);
+      wasConnectedRef.current = true;
+      // Clear disconnection flag on successful reconnect
+      setWasDisconnected(false);
     } else {
       setIsConnected(false);
     }
@@ -125,10 +154,15 @@ export function useMidi(onNoteOn?: (event: MidiNoteEvent) => void, onNoteOff?: (
     return () => {
       if (input) input.onmidimessage = null;
     };
-  }, [selectedDeviceId, handleMidiMessage]);
+  }, [selectedDeviceId, handleMidiMessage, devices]); // re-run when devices change (reconnection)
 
   const selectDevice = useCallback((id: string) => {
     setSelectedDeviceId(id);
+    setWasDisconnected(false);
+  }, []);
+
+  const clearDisconnected = useCallback(() => {
+    setWasDisconnected(false);
   }, []);
 
   const selectedDevice = devices.find((d) => d.id === selectedDeviceId) ?? null;
@@ -141,5 +175,7 @@ export function useMidi(onNoteOn?: (event: MidiNoteEvent) => void, onNoteOff?: (
     activeNotes,
     selectDevice,
     lastNote,
+    wasDisconnected,
+    clearDisconnected,
   };
 }

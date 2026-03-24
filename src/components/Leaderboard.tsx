@@ -29,15 +29,29 @@ const Leaderboard: React.FC<LeaderboardProps> = ({
   const [selectedSongId, setSelectedSongId] = useState(SONG_CATALOG[0]?.id ?? '');
   const [friendInput, setFriendInput] = useState('');
 
-  const playerBestScore = useMemo(() => {
+  const playerBestEntry = useMemo(() => {
     const scores = highScores[selectedSongId];
     if (!scores) return undefined;
-    return Math.max(...Object.values(scores).map(s => s.score));
+    let best: { score: number; accuracy: number; stars: number } | undefined;
+    for (const hs of Object.values(scores)) {
+      if (!best || hs.score > best.score) {
+        best = { score: hs.score, accuracy: hs.accuracy, stars: hs.stars };
+      }
+    }
+    return best;
   }, [highScores, selectedSongId]);
 
+  const playerBestScore = playerBestEntry?.score;
+
   const globalLeaderboard = useMemo(() => {
-    return generateMockLeaderboard(selectedSongId, playerBestScore, playerName);
-  }, [selectedSongId, playerBestScore, playerName]);
+    return generateMockLeaderboard(
+      selectedSongId,
+      playerBestScore,
+      playerName,
+      playerBestEntry?.accuracy,
+      playerBestEntry?.stars,
+    );
+  }, [selectedSongId, playerBestScore, playerName, playerBestEntry]);
 
   const percentile = useMemo(() => getPlayerPercentile(globalLeaderboard), [globalLeaderboard]);
 
@@ -126,10 +140,21 @@ const Leaderboard: React.FC<LeaderboardProps> = ({
         </button>
       </div>
 
-      {/* Percentile */}
+      {/* Player rank & percentile */}
       {activeTab === 'global' && playerBestScore !== undefined && (
-        <div className="bg-emerald-50 dark:bg-emerald-500/10 rounded-lg p-3 text-center border border-emerald-200 dark:border-emerald-500/20" data-testid="percentile-display">
-          <span className="text-emerald-600 dark:text-emerald-400 font-bold text-sm">You're in the top {100 - percentile}% of players on this song!</span>
+        <div className="bg-emerald-50 dark:bg-emerald-500/10 rounded-lg p-3 text-center border border-emerald-200 dark:border-emerald-500/20 space-y-1" data-testid="percentile-display">
+          {(() => {
+            const playerEntry = globalLeaderboard.find(e => e.isPlayer);
+            return playerEntry ? (
+              <span className="text-emerald-600 dark:text-emerald-400 font-bold text-sm block" data-testid="player-rank">
+                You are #{playerEntry.rank} — top {100 - percentile}% of players!
+              </span>
+            ) : (
+              <span className="text-emerald-600 dark:text-emerald-400 font-bold text-sm block">
+                You're in the top {100 - percentile}% of players on this song!
+              </span>
+            );
+          })()}
         </div>
       )}
 

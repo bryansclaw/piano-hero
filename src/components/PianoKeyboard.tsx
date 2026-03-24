@@ -60,8 +60,8 @@ const PianoKeyboard: React.FC<PianoKeyboardProps> = ({
 
   return (
     <div
-      className="relative w-full select-none"
-      style={{ height: '120px' }}
+      className="relative w-full select-none touch-none"
+      style={{ height: '120px', minHeight: '80px' }}
       role="group"
       aria-label="Piano keyboard"
       data-testid="piano-keyboard"

@@ -96,17 +96,17 @@ const FallingNotes: React.FC<FallingNotesProps> = ({
     ctx.fillStyle = gradient;
     ctx.fillRect(0, hitLineY - 20, canvasWidth, 40);
 
-    // Draw falling notes
+    // Draw falling notes (viewport culling — only render notes in visible Y range)
     for (const note of fallingNotes) {
       if (note.hit && note.rating !== 'miss') continue; // Don't draw hit notes (particles replace them)
-      if (note.y < -50 || note.y > canvasHeight + 50) continue; // Off screen
+      const noteHeight = Math.max(10, note.duration * 50);
+      if (note.y - noteHeight > canvasHeight + 10 || note.y < -noteHeight - 10) continue; // Off screen
 
       const x = noteToX(note.midi, canvasWidth);
       const w = noteDisplayWidth(note.midi, canvasWidth);
       const color = getNoteColor(note.midi);
 
       // Note rectangle
-      const noteHeight = Math.max(10, note.duration * 50);
       const y = note.y - noteHeight;
 
       if (note.hit && note.rating === 'miss') {

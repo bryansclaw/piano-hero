@@ -76,7 +76,9 @@ export function updateGame(
 ): GameEngineState {
   if (state.gameState !== 'playing') return state;
 
-  const deltaSec = deltaMs / 1000;
+  // Clamp delta to max 100ms to prevent huge jumps when tab is backgrounded
+  const clampedDeltaMs = Math.min(deltaMs, 100);
+  const deltaSec = clampedDeltaMs / 1000;
   const newTime = state.currentTime + deltaSec;
   const hitLineY = canvasHeight * HIT_LINE_Y_PERCENT;
   const { fallSpeed } = state.config;
@@ -99,8 +101,8 @@ export function updateGame(
     return { ...note, y };
   });
 
-  // Check if song is complete
-  const allDone = newNotes.every((n) => n.hit) && newTime > state.songDuration;
+  // Check if song is complete (handles 0-note songs gracefully)
+  const allDone = (newNotes.length === 0 || newNotes.every((n) => n.hit)) && newTime > state.songDuration;
   if (allDone || newTime > state.songDuration + 2) {
     const maxScore = calculateMaxScore(state.fallingNotes.length);
     const stars = calculateStars(newScore.points, maxScore);

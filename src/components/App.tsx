@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import type { AppMode, Difficulty, HighScore, GameConfig, MidiNoteEvent, NoteTimingData, PerformanceReport, Recording, Lesson, PlayerProfile, Friend } from '../types';
 import { TIMING_WINDOWS, FALL_SPEEDS } from '../utils/constants';
+import ErrorBoundary from './ErrorBoundary';
 import Header from './Header';
 import SongLibrary from './SongLibrary';
 import PianoKeyboard from './PianoKeyboard';
@@ -130,6 +131,13 @@ const App: React.FC = () => {
   );
 
   const midi = useMidi(onMidiNoteOn);
+
+  // Auto-pause game when MIDI disconnects
+  useEffect(() => {
+    if (midi.wasDisconnected && gameState === 'playing') {
+      pauseGameFn();
+    }
+  }, [midi.wasDisconnected, gameState, pauseGameFn]);
 
   const handleSelectSong = useCallback(
     (songId: string, difficulty: Difficulty) => {
@@ -364,6 +372,7 @@ const App: React.FC = () => {
   const score = engineState?.score ?? createInitialScore();
 
   return (
+    <ErrorBoundary>
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100 flex flex-col overflow-x-hidden">
       <Header
         currentMode={mode}
@@ -371,6 +380,39 @@ const App: React.FC = () => {
         theme={theme}
         onToggleTheme={toggleTheme}
       />
+
+      {/* MIDI Disconnection Overlay */}
+      {midi.wasDisconnected && (mode === 'game' || mode === 'practice') && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" data-testid="midi-disconnect-overlay">
+          <div className="bg-white dark:bg-slate-800 rounded-xl p-6 max-w-sm mx-4 text-center space-y-4 border border-slate-200 dark:border-slate-700">
+            <div className="text-4xl">🔌</div>
+            <h3 className="text-lg font-bold text-slate-900 dark:text-white">MIDI Device Disconnected</h3>
+            <p className="text-sm text-slate-500 dark:text-slate-400">
+              Your MIDI device was disconnected. Reconnect it and click Resume, or continue with the on-screen keyboard.
+            </p>
+            <div className="flex gap-3 justify-center">
+              <button
+                onClick={() => {
+                  midi.clearDisconnected();
+                }}
+                className="px-4 py-2 bg-slate-200 dark:bg-slate-700 text-slate-900 dark:text-white rounded-lg text-sm font-medium hover:bg-slate-300 dark:hover:bg-slate-600 transition-all"
+              >
+                Use Keyboard
+              </button>
+              <button
+                onClick={() => {
+                  midi.clearDisconnected();
+                  if (gameState === 'paused') resumeGame();
+                }}
+                className="px-4 py-2 bg-gradient-to-r from-cyan-500 to-pink-500 text-white rounded-lg text-sm font-medium hover:opacity-90 active:scale-95 transition-all"
+                disabled={!midi.isConnected}
+              >
+                Resume
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <main className="flex-1">
         {mode === 'library' && (
@@ -638,7 +680,24 @@ const App: React.FC = () => {
           </div>
         )}
       </main>
+
+      {/* Live region for screen reader score announcements */}
+      <div
+        aria-live="polite"
+        aria-atomic="true"
+        className="sr-only"
+        data-testid="score-announcer"
+      >
+        {gameState === 'complete' && engineState && (
+          <span>
+            Game complete! Score: {engineState.score.points.toLocaleString()}.
+            Accuracy: {engineState.score.accuracy}%.
+            {engineState.score.stars} stars.
+          </span>
+        )}
+      </div>
     </div>
+    </ErrorBoundary>
   );
 };
 

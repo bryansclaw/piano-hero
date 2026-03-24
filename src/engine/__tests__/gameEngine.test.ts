@@ -147,6 +147,47 @@ describe('gameEngine', () => {
     });
   });
 
+  describe('edge cases', () => {
+    it('handles 0-note game without crashing', () => {
+      const emptyNotes: SongNote[] = [];
+      let state = createGameEngine(testConfig, emptyNotes, 5);
+      state = startPlaying(state);
+      expect(state.fallingNotes.length).toBe(0);
+
+      // Advance past song duration
+      state = { ...state, currentTime: 6 };
+      const next = updateGame(state, 16, CANVAS_HEIGHT);
+      expect(next.gameState).toBe('complete');
+    });
+
+    it('completes game with all notes missed (0% accuracy)', () => {
+      let state = createGameEngine(testConfig, testNotes, 5);
+      state = startPlaying(state);
+      // Jump far past all notes so they're all missed
+      state = { ...state, currentTime: 10 };
+      let next = updateGame(state, 16, CANVAS_HEIGHT);
+      // All notes should be marked as miss
+      const missedNotes = next.fallingNotes.filter(n => n.hit && n.rating === 'miss');
+      expect(missedNotes.length).toBe(3);
+
+      // Should complete (all hit, past duration)
+      next = updateGame(next, 16, CANVAS_HEIGHT);
+      expect(next.gameState).toBe('complete');
+      expect(next.score.accuracy).toBe(0);
+    });
+
+    it('clamps large delta to 100ms (tab backgrounded)', () => {
+      let state = createGameEngine(testConfig, testNotes, 120);
+      state = startPlaying(state);
+      state = { ...state, currentTime: 0 };
+
+      // Simulate tab coming back after 5 seconds (5000ms)
+      const next = updateGame(state, 5000, CANVAS_HEIGHT);
+      // Time should only advance by 100ms (0.1s) not 5s
+      expect(next.currentTime).toBeCloseTo(0.1, 1);
+    });
+  });
+
   describe('handleNoteInput', () => {
     it('matches note and scores', () => {
       let state = createGameEngine(testConfig, testNotes, 10);

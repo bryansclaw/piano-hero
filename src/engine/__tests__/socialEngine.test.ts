@@ -199,6 +199,36 @@ describe('Leaderboard', () => {
   });
 });
 
+describe('Leaderboard score integration', () => {
+  it('inserts player at correct rank position', () => {
+    const leaderboard = generateMockLeaderboard('love-story', 999999, 'TopPlayer');
+    const player = leaderboard.find(e => e.isPlayer);
+    expect(player).toBeDefined();
+    expect(player!.rank).toBeLessThanOrEqual(5);
+  });
+
+  it('player with low score ranks at bottom', () => {
+    const leaderboard = generateMockLeaderboard('love-story', 1, 'LowPlayer');
+    const player = leaderboard.find(e => e.isPlayer);
+    expect(player).toBeDefined();
+    expect(player!.rank).toBeGreaterThan(10);
+  });
+
+  it('passes player accuracy and stars through', () => {
+    const leaderboard = generateMockLeaderboard('love-story', 100000, 'TestPlayer', 95.5, 4);
+    const player = leaderboard.find(e => e.isPlayer);
+    expect(player).toBeDefined();
+    expect(player!.accuracy).toBe(95.5);
+    expect(player!.stars).toBe(4);
+  });
+
+  it('always includes player even if outside top 20', () => {
+    const leaderboard = generateMockLeaderboard('love-story', 0, 'WeakPlayer');
+    const player = leaderboard.find(e => e.isPlayer);
+    expect(player).toBeDefined();
+  });
+});
+
 describe('getPlayerPercentile', () => {
   it('returns percentile based on rank', () => {
     const leaderboard = generateMockLeaderboard('love-story', 200000, 'TestPlayer');
