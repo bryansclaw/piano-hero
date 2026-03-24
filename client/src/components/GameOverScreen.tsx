@@ -9,6 +9,7 @@ interface GameOverScreenProps {
   onBackToLibrary: () => void;
   isLesson?: boolean;
   lessonPassed?: boolean;
+  passingAccuracy?: number | null;
   onBackToCurriculum?: () => void;
 }
 
@@ -19,6 +20,7 @@ const GameOverScreen: React.FC<GameOverScreenProps> = ({
   onBackToLibrary,
   isLesson = false,
   lessonPassed = false,
+  passingAccuracy = null,
   onBackToCurriculum,
 }) => {
   const stars = score.stars;
@@ -64,8 +66,23 @@ const GameOverScreen: React.FC<GameOverScreenProps> = ({
             <div className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wider mt-0.5">Total Score</div>
           </div>
           <div>
-            <div className="text-3xl font-bold text-slate-900 dark:text-white">{score.accuracy.toFixed(1)}%</div>
+            <div className={`text-3xl font-bold ${
+              isLesson && passingAccuracy != null
+                ? score.accuracy >= passingAccuracy ? 'text-emerald-500' : 'text-rose-500'
+                : 'text-slate-900 dark:text-white'
+            }`}>
+              {score.accuracy.toFixed(1)}%
+            </div>
             <div className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wider mt-0.5">Accuracy</div>
+            {isLesson && passingAccuracy != null && (
+              <div className="mt-1 text-xs font-medium">
+                <span className="text-slate-400">Pass: {passingAccuracy}%</span>
+                {score.accuracy >= passingAccuracy
+                  ? <span className="ml-2 text-emerald-500 font-bold">✓ PASSED</span>
+                  : <span className="ml-2 text-rose-400 font-bold">✗ {(passingAccuracy - score.accuracy).toFixed(1)}% short</span>
+                }
+              </div>
+            )}
           </div>
           <div>
             <div className="text-xl font-bold text-slate-900 dark:text-white">{score.maxCombo}x</div>

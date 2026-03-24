@@ -502,19 +502,22 @@ const App: React.FC = () => {
     return getNextLesson(currentLessonId, updatedCompleted);
   }, [currentLessonId, completedLessons]);
 
-  // Whether the completed lesson passed (met accuracy threshold)
-  const lessonPassed = useMemo(() => {
-    if (!currentLessonId || gameState !== 'complete' || !engineState) return false;
-    // Find the lesson's passing accuracy
+  // Get the current lesson's passing accuracy threshold
+  const currentLessonPassingAccuracy = useMemo((): number | null => {
+    if (!currentLessonId) return null;
     const curriculum = getCurriculum();
     for (const path of curriculum) {
       const lesson = path.lessons.find(l => l.id === currentLessonId);
-      if (lesson) {
-        return engineState.score.accuracy >= lesson.passingAccuracy;
-      }
+      if (lesson) return lesson.passingAccuracy;
     }
-    return false;
-  }, [currentLessonId, gameState, engineState]);
+    return null;
+  }, [currentLessonId]);
+
+  // Whether the completed lesson passed (met accuracy threshold)
+  const lessonPassed = useMemo(() => {
+    if (!currentLessonId || gameState !== 'complete' || !engineState || currentLessonPassingAccuracy == null) return false;
+    return engineState.score.accuracy >= currentLessonPassingAccuracy;
+  }, [currentLessonId, gameState, engineState, currentLessonPassingAccuracy]);
 
   if (!dataLoaded) {
     return (
@@ -648,6 +651,7 @@ const App: React.FC = () => {
                   onBackToLibrary={handleBackToLibrary}
                   isLesson={!!currentLessonId}
                   lessonPassed={lessonPassed}
+                  passingAccuracy={currentLessonPassingAccuracy}
                   onBackToCurriculum={() => {
                     resetGame();
                     setPerformanceReport(null);
@@ -689,6 +693,7 @@ const App: React.FC = () => {
                       ? (engineState?.currentTime ?? 0) / currentSong.duration
                       : 0
                   }
+                  passingAccuracy={currentLessonPassingAccuracy}
                 />
 
                 <div className="max-w-6xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-3 flex flex-wrap items-center gap-4">

@@ -5,6 +5,7 @@ interface ScoreDisplayProps {
   score: GameScore;
   lastRating?: HitRating | null;
   songProgress?: number; // 0-1
+  passingAccuracy?: number | null; // e.g. 70 for 70% — shown as target for curriculum lessons
 }
 
 const RATING_COLORS: Record<HitRating, string> = {
@@ -14,7 +15,7 @@ const RATING_COLORS: Record<HitRating, string> = {
   miss: 'text-rose-400',
 };
 
-const ScoreDisplay: React.FC<ScoreDisplayProps> = ({ score, lastRating, songProgress = 0 }) => {
+const ScoreDisplay: React.FC<ScoreDisplayProps> = ({ score, lastRating, songProgress = 0, passingAccuracy = null }) => {
   return (
     <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur border-b border-slate-200 dark:border-slate-700/50 relative" data-testid="score-display">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between">
@@ -55,11 +56,30 @@ const ScoreDisplay: React.FC<ScoreDisplayProps> = ({ score, lastRating, songProg
       </div>
 
       {/* Accuracy */}
-      <div className="bg-white dark:bg-slate-800/60 rounded-xl border border-slate-200 dark:border-slate-700/50 p-4 min-w-[120px] text-right">
-        <div className="text-3xl font-bold bg-gradient-to-r from-cyan-400 to-pink-500 bg-clip-text text-transparent" data-testid="accuracy-display">
+      <div className={`bg-white dark:bg-slate-800/60 rounded-xl border p-4 min-w-[120px] text-right ${
+        passingAccuracy != null
+          ? score.accuracy >= passingAccuracy
+            ? 'border-emerald-400 dark:border-emerald-500/50'
+            : 'border-rose-400 dark:border-rose-500/50'
+          : 'border-slate-200 dark:border-slate-700/50'
+      }`}>
+        <div className={`text-3xl font-bold ${
+          passingAccuracy != null
+            ? score.accuracy >= passingAccuracy
+              ? 'text-emerald-500'
+              : 'text-rose-500'
+            : 'bg-gradient-to-r from-cyan-400 to-pink-500 bg-clip-text text-transparent'
+        }`} data-testid="accuracy-display">
           {score.accuracy.toFixed(1)}%
         </div>
         <div className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wider mt-0.5">Accuracy</div>
+        {passingAccuracy != null && (
+          <div className={`text-xs font-semibold mt-1 ${
+            score.accuracy >= passingAccuracy ? 'text-emerald-500' : 'text-rose-400'
+          }`}>
+            {score.accuracy >= passingAccuracy ? '✓ Passing' : `Need ${passingAccuracy}%`}
+          </div>
+        )}
       </div>
 
       </div>
