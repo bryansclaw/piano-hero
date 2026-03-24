@@ -34,26 +34,28 @@ export function usePianoAudio(volume: number = 80) {
     return synthRef.current;
   }, [volume]);
 
-  const noteOn = useCallback(async (midiNote: number, velocity: number = 100) => {
-    try {
-      const synth = await ensureSynth();
+  const noteOn = useCallback((midiNote: number, velocity: number = 100) => {
+    // Fire-and-forget — don't block on async
+    ensureSynth().then(synth => {
       const freq = Tone.Frequency(midiNote, 'midi').toFrequency();
       const vel = Math.max(0.01, velocity / 127);
       synth.triggerAttack(freq, Tone.now(), vel);
-    } catch (err) {
+    }).catch(err => {
       console.warn('[PianoAudio] Failed to play note:', err);
-    }
+    });
   }, [ensureSynth]);
 
-  const noteOff = useCallback(async (midiNote: number) => {
-    try {
-      const synth = await ensureSynth();
-      const freq = Tone.Frequency(midiNote, 'midi').toFrequency();
-      synth.triggerRelease(freq, Tone.now());
-    } catch (err) {
-      console.warn('[PianoAudio] Failed to release note:', err);
+  const noteOff = useCallback((midiNote: number) => {
+    // Only release if synth already exists (don't create one just to release)
+    if (synthRef.current && startedRef.current) {
+      try {
+        const freq = Tone.Frequency(midiNote, 'midi').toFrequency();
+        synthRef.current.triggerRelease(freq, Tone.now());
+      } catch (err) {
+        console.warn('[PianoAudio] Failed to release note:', err);
+      }
     }
-  }, [ensureSynth]);
+  }, []);
 
   const allNotesOff = useCallback(() => {
     if (synthRef.current) {

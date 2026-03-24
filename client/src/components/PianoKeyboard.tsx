@@ -60,8 +60,8 @@ const PianoKeyboard: React.FC<PianoKeyboardProps> = ({
 
   return (
     <div
-      className="relative w-full select-none touch-none"
-      style={{ height: '120px', minHeight: '80px' }}
+      className="relative w-full select-none"
+      style={{ height: '120px', minHeight: '80px', touchAction: 'manipulation' }}
       role="group"
       aria-label="Piano keyboard"
       data-testid="piano-keyboard"
@@ -84,13 +84,15 @@ const PianoKeyboard: React.FC<PianoKeyboardProps> = ({
               borderColor: isDark ? '#334155' : '#cbd5e1',
               zIndex: 1,
             }}
-            onPointerDown={() => onNoteOn?.(note)}
+            onPointerDown={(e) => { e.preventDefault(); onNoteOn?.(note); }}
             onPointerUp={() => onNoteOff?.(note)}
             onPointerLeave={() => onNoteOff?.(note)}
+            onMouseDown={(e) => { e.preventDefault(); onNoteOn?.(note); }}
+            onMouseUp={() => onNoteOff?.(note)}
             aria-label={midiToNoteName(note)}
           >
             {showNoteNames && note % 12 === 0 && (
-              <span className="absolute bottom-1 left-1/2 -translate-x-1/2 text-[8px] text-slate-500">
+              <span className="absolute bottom-1 left-1/2 -translate-x-1/2 text-[8px] text-slate-500 pointer-events-none">
                 {midiToNoteName(note)}
               </span>
             )}
@@ -114,9 +116,11 @@ const PianoKeyboard: React.FC<PianoKeyboardProps> = ({
               backgroundColor: highlight ?? '#1e293b',
               zIndex: 2,
             }}
-            onPointerDown={() => onNoteOn?.(note)}
+            onPointerDown={(e) => { e.preventDefault(); onNoteOn?.(note); }}
             onPointerUp={() => onNoteOff?.(note)}
             onPointerLeave={() => onNoteOff?.(note)}
+            onMouseDown={(e) => { e.preventDefault(); onNoteOn?.(note); }}
+            onMouseUp={() => onNoteOff?.(note)}
             aria-label={midiToNoteName(note)}
           />
         );
