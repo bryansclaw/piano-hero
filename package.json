@@ -3,6 +3,7 @@
   "private": true,
   "version": "1.0.0",
   "scripts": {
+    "postinstall": "cd client && npm install && cd ../server && npm install",
     "dev": "concurrently \"npm run dev:client\" \"npm run dev:server\"",
     "dev:client": "cd client && npm run dev",
     "dev:server": "cd server && npm run dev",
@@ -11,8 +12,7 @@
     "build:server": "cd server && npm run build",
     "start": "cd server && npm start",
     "test": "cd client && npm test",
-    "test:e2e": "cd client && npm run test:e2e",
-    "install:all": "cd client && npm install && cd ../server && npm install"
+    "test:e2e": "cd client && npm run test:e2e"
   },
   "devDependencies": {
     "concurrently": "^9.1.2"
