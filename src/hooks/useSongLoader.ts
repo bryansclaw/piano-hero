@@ -8,6 +8,7 @@ interface UseSongLoaderReturn {
   currentSong: SongData | null;
   currentNotes: SongNote[];
   loadSong: (id: string, difficulty: Difficulty) => void;
+  loadCustomSong: (song: SongData, difficulty: Difficulty) => void;
   currentDifficulty: Difficulty;
   isLoading: boolean;
 }
@@ -25,13 +26,14 @@ export function useSongLoader(): UseSongLoaderReturn {
   const [currentSongId, setCurrentSongId] = useState<string | null>(null);
   const [currentDifficulty, setCurrentDifficulty] = useState<Difficulty>('easy');
   const [isLoading, setIsLoading] = useState(false);
+  const [customSong, setCustomSong] = useState<SongData | null>(null);
 
   const songs = useMemo(() => getAllSongs(), []);
 
-  const currentSong = useMemo(
-    () => songs.find((s) => s.id === currentSongId) ?? null,
-    [songs, currentSongId],
-  );
+  const currentSong = useMemo(() => {
+    if (customSong) return customSong;
+    return songs.find((s) => s.id === currentSongId) ?? null;
+  }, [songs, currentSongId, customSong]);
 
   const currentNotes = useMemo(() => {
     if (!currentSong) return [];
@@ -41,9 +43,17 @@ export function useSongLoader(): UseSongLoaderReturn {
 
   const loadSong = useCallback((id: string, difficulty: Difficulty) => {
     setIsLoading(true);
+    setCustomSong(null); // Clear any custom song
     setCurrentSongId(id);
     setCurrentDifficulty(difficulty);
-    // Simulate brief loading for UX
+    setTimeout(() => setIsLoading(false), 100);
+  }, []);
+
+  const loadCustomSong = useCallback((song: SongData, difficulty: Difficulty) => {
+    setIsLoading(true);
+    setCustomSong(song);
+    setCurrentSongId(song.id);
+    setCurrentDifficulty(difficulty);
     setTimeout(() => setIsLoading(false), 100);
   }, []);
 
@@ -52,6 +62,7 @@ export function useSongLoader(): UseSongLoaderReturn {
     currentSong,
     currentNotes,
     loadSong,
+    loadCustomSong,
     currentDifficulty,
     isLoading,
   };

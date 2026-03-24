@@ -69,7 +69,7 @@ const App: React.FC = () => {
 
   const weeklyChallenge = useMemo(() => generateWeeklyChallenge(), []);
 
-  const { currentSong, currentNotes, loadSong } = useSongLoader();
+  const { currentSong, currentNotes, loadSong, loadCustomSong } = useSongLoader();
 
   const practiceTools = usePracticeTools(currentSong?.bpm ?? 120);
 
@@ -129,13 +129,14 @@ const App: React.FC = () => {
 
   const handleSelectSong = useCallback(
     (songId: string, difficulty: Difficulty) => {
+      resetGame();
       loadSong(songId, difficulty);
       setSelectedDifficulty(difficulty);
       setMode('game');
       setPerformanceReport(null);
       setNoteTimings([]);
     },
-    [loadSong],
+    [loadSong, resetGame],
   );
 
   const handleStartGame = useCallback(() => {
@@ -297,17 +298,40 @@ const App: React.FC = () => {
   }, []);
 
   const handleStartLesson = useCallback((lesson: Lesson) => {
-    loadSong(lesson.id, 'easy');
+    resetGame();
+    // Curriculum lessons use exerciseNotes — inject them as a custom song
+    if (lesson.exerciseNotes && lesson.exerciseNotes.length > 0) {
+      loadCustomSong({
+        id: lesson.id,
+        title: lesson.title,
+        artist: 'Curriculum',
+        bpm: lesson.exerciseBpm || 80,
+        key: 'C',
+        duration: Math.max(...lesson.exerciseNotes.map(n => n.time + n.duration), 30),
+        notes: {
+          easy: lesson.exerciseNotes,
+          medium: lesson.exerciseNotes,
+          hard: lesson.exerciseNotes,
+          expert: lesson.exerciseNotes,
+        },
+      }, 'easy');
+    } else {
+      loadSong(lesson.id, 'easy');
+    }
     setSelectedDifficulty('easy');
     setMode('game');
-  }, [loadSong]);
+    setPerformanceReport(null);
+    setNoteTimings([]);
+  }, [loadSong, loadCustomSong, resetGame]);
 
   const handleModeChange = useCallback((newMode: AppMode) => {
-    setMode(newMode);
+    // Reset game engine when leaving game mode to prevent stale state
     if (newMode !== 'game') {
+      resetGame();
       setPerformanceReport(null);
     }
-  }, []);
+    setMode(newMode);
+  }, [resetGame]);
 
   const improvementInsight = useMemo(() => {
     if (!currentSong) return null;
