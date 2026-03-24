@@ -285,6 +285,19 @@ const Analytics: React.FC<AnalyticsProps> = ({ analytics }) => {
   const [period, setPeriod] = useState<'week' | 'month' | 'all'>('week');
   const [selectedSongId, setSelectedSongId] = useState('');
 
+  // Track theme changes to redraw charts
+  const [themeKey, setThemeKey] = useState(0);
+  useEffect(() => {
+    const observer = new MutationObserver(() => {
+      setThemeKey(prev => prev + 1);
+    });
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['class'],
+    });
+    return () => observer.disconnect();
+  }, []);
+
   const stats = useMemo(() => calculateTotalStats(analytics), [analytics]);
   const practiceData = useMemo(() => aggregatePracticeTime(analytics.dailyPractice, period), [analytics.dailyPractice, period]);
 
@@ -302,19 +315,19 @@ const Analytics: React.FC<AnalyticsProps> = ({ analytics }) => {
     if (practiceChartRef.current) {
       drawBarChart(practiceChartRef.current, practiceData.labels, practiceData.values, '#ec4899', 'Practice Time', 'minutes');
     }
-  }, [practiceData]);
+  }, [practiceData, themeKey]);
 
   useEffect(() => {
     if (accuracyChartRef.current) {
       drawLineChart(accuracyChartRef.current, songTrend.labels, songTrend.values, '#06b6d4', 'Accuracy Trend', '%');
     }
-  }, [songTrend]);
+  }, [songTrend, themeKey]);
 
   useEffect(() => {
     if (heatmapRef.current) {
       drawKeyHeatmap(heatmapRef.current, analytics.keyAccuracy);
     }
-  }, [analytics.keyAccuracy]);
+  }, [analytics.keyAccuracy, themeKey]);
 
   const songsWithTrends = useMemo(() => {
     return Object.keys(analytics.songAccuracyTrends).map(id => {

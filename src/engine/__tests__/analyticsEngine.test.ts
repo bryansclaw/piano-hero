@@ -1,5 +1,6 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import {
+  loadAnalytics,
   recordSession,
   aggregatePracticeTime,
   calculateAccuracyTrend,
@@ -199,5 +200,66 @@ describe('calculatePercentile', () => {
   it('returns 50 for missing player', () => {
     const leaderboard = [{ score: 100000, isPlayer: false }];
     expect(calculatePercentile(leaderboard)).toBe(50);
+  });
+});
+
+describe('recordSession with unknown songId', () => {
+  it('does not crash with curriculum lesson ID', () => {
+    const analytics = emptyAnalytics();
+    const session = makeSession({ songId: 'fund-01' }); // Curriculum lesson ID
+    const updated = recordSession(analytics, session, []);
+    expect(updated.sessionHistory.length).toBe(1);
+    expect(updated.sessionHistory[0].songId).toBe('fund-01');
+    expect(updated.songAccuracyTrends['fund-01']).toBeDefined();
+  });
+
+  it('handles sessions with arbitrary IDs', () => {
+    const analytics = emptyAnalytics();
+    const session = makeSession({ songId: 'nonexistent-song-id-12345' });
+    const updated = recordSession(analytics, session, []);
+    expect(updated.sessionHistory.length).toBe(1);
+    expect(updated.dailyPractice.length).toBe(1);
+  });
+});
+
+describe('loadAnalytics', () => {
+  const ANALYTICS_KEY = 'piano-hero-analytics';
+
+  beforeEach(() => {
+    localStorage.removeItem(ANALYTICS_KEY);
+  });
+
+  afterEach(() => {
+    localStorage.removeItem(ANALYTICS_KEY);
+  });
+
+  it('returns defaults with corrupted localStorage', () => {
+    localStorage.setItem(ANALYTICS_KEY, '{invalid json!!!');
+    const result = loadAnalytics();
+    expect(result.dailyPractice).toEqual([]);
+    expect(result.keyAccuracy).toEqual([]);
+    expect(result.sessionHistory).toEqual([]);
+    expect(result.songAccuracyTrends).toEqual({});
+  });
+
+  it('returns defaults with empty localStorage', () => {
+    const result = loadAnalytics();
+    expect(result.dailyPractice).toEqual([]);
+    expect(result.keyAccuracy).toEqual([]);
+    expect(result.sessionHistory).toEqual([]);
+    expect(result.songAccuracyTrends).toEqual({});
+  });
+
+  it('loads valid data from localStorage', () => {
+    const data: AnalyticsData = {
+      dailyPractice: [{ date: '2024-01-01', totalMinutes: 30, sessions: 1, averageAccuracy: 80, songsPlayed: ['a'] }],
+      keyAccuracy: [],
+      sessionHistory: [],
+      songAccuracyTrends: {},
+    };
+    localStorage.setItem(ANALYTICS_KEY, JSON.stringify(data));
+    const result = loadAnalytics();
+    expect(result.dailyPractice.length).toBe(1);
+    expect(result.dailyPractice[0].totalMinutes).toBe(30);
   });
 });

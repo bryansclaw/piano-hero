@@ -607,7 +607,11 @@ export function loadCompletedLessons(): Set<string> {
 }
 
 export function saveCompletedLessons(completed: Set<string>): void {
-  localStorage.setItem(CURRICULUM_KEY, JSON.stringify([...completed]));
+  try {
+    localStorage.setItem(CURRICULUM_KEY, JSON.stringify([...completed]));
+  } catch (e) {
+    console.error('[PianoHero] Failed to save completed lessons:', e);
+  }
 }
 
 export function loadLessonBestAccuracies(): Record<string, number> {
@@ -620,9 +624,13 @@ export function loadLessonBestAccuracies(): Record<string, number> {
 }
 
 export function saveLessonBestAccuracy(lessonId: string, accuracy: number): void {
-  const scores = loadLessonBestAccuracies();
-  if (!scores[lessonId] || accuracy > scores[lessonId]) {
-    scores[lessonId] = accuracy;
-    localStorage.setItem(CURRICULUM_KEY + '-scores', JSON.stringify(scores));
+  try {
+    const scores = loadLessonBestAccuracies();
+    if (!scores[lessonId] || accuracy > scores[lessonId]) {
+      scores[lessonId] = accuracy;
+      localStorage.setItem(CURRICULUM_KEY + '-scores', JSON.stringify(scores));
+    }
+  } catch (e) {
+    console.error('[PianoHero] Failed to save lesson accuracy:', e);
   }
 }

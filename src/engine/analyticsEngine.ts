@@ -19,8 +19,18 @@ export function loadAnalytics(): AnalyticsData {
   };
 }
 
+const MAX_STORAGE_WARNING_BYTES = 4 * 1024 * 1024; // Warn at 4MB (localStorage limit ~5MB)
+
 export function saveAnalytics(data: AnalyticsData): void {
-  localStorage.setItem(ANALYTICS_KEY, JSON.stringify(data));
+  try {
+    const json = JSON.stringify(data);
+    if (json.length > MAX_STORAGE_WARNING_BYTES) {
+      console.warn('[PianoHero] Analytics data approaching localStorage limit:', Math.round(json.length / 1024), 'KB');
+    }
+    localStorage.setItem(ANALYTICS_KEY, json);
+  } catch (e) {
+    console.error('[PianoHero] Failed to save analytics:', e);
+  }
 }
 
 // ===== Recording sessions =====

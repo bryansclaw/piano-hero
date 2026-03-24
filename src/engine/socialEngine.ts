@@ -307,7 +307,11 @@ export function loadProfile(): PlayerProfile {
 }
 
 export function saveProfile(profile: PlayerProfile): void {
-  localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
+  try {
+    localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
+  } catch (e) {
+    console.error('[PianoHero] Failed to save profile:', e);
+  }
 }
 
 export function loadFriends(): Friend[] {
@@ -320,7 +324,11 @@ export function loadFriends(): Friend[] {
 }
 
 export function saveFriends(friends: Friend[]): void {
-  localStorage.setItem(FRIENDS_KEY, JSON.stringify(friends));
+  try {
+    localStorage.setItem(FRIENDS_KEY, JSON.stringify(friends));
+  } catch (e) {
+    console.error('[PianoHero] Failed to save friends:', e);
+  }
 }
 
 // ===== Avatar =====

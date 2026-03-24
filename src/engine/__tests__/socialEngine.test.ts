@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import {
   xpForLevel,
   totalXpForLevel,
@@ -11,6 +11,8 @@ import {
   getPlayerPercentile,
   generateWeeklyChallenge,
   createDefaultProfile,
+  loadProfile,
+  loadFriends,
   AVATARS,
 } from '../socialEngine';
 import type { PlayerProfile, HighScore, Difficulty } from '../../types';
@@ -232,5 +234,75 @@ describe('Weekly Challenge', () => {
 describe('Avatars', () => {
   it('has 12 avatar options', () => {
     expect(AVATARS.length).toBe(12);
+  });
+});
+
+describe('loadProfile - localStorage resilience', () => {
+  const PROFILE_KEY = 'piano-hero-profile';
+
+  beforeEach(() => {
+    localStorage.removeItem(PROFILE_KEY);
+  });
+
+  afterEach(() => {
+    localStorage.removeItem(PROFILE_KEY);
+  });
+
+  it('returns default profile with corrupted localStorage', () => {
+    localStorage.setItem(PROFILE_KEY, 'corrupted{{{not json');
+    const result = loadProfile();
+    expect(result.username).toBe('Player');
+    expect(result.xp).toBe(0);
+    expect(result.level).toBe(1);
+    expect(result.badges).toEqual([]);
+  });
+
+  it('returns default profile with empty localStorage', () => {
+    const result = loadProfile();
+    expect(result.username).toBe('Player');
+    expect(result.level).toBe(1);
+  });
+
+  it('loads valid profile from localStorage', () => {
+    const profile: PlayerProfile = {
+      ...createDefaultProfile(),
+      username: 'TestUser',
+      xp: 1000,
+    };
+    localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
+    const result = loadProfile();
+    expect(result.username).toBe('TestUser');
+    expect(result.xp).toBe(1000);
+  });
+});
+
+describe('loadFriends - localStorage resilience', () => {
+  const FRIENDS_KEY = 'piano-hero-friends';
+
+  beforeEach(() => {
+    localStorage.removeItem(FRIENDS_KEY);
+  });
+
+  afterEach(() => {
+    localStorage.removeItem(FRIENDS_KEY);
+  });
+
+  it('returns empty array with corrupted localStorage', () => {
+    localStorage.setItem(FRIENDS_KEY, 'not valid json!!!');
+    const result = loadFriends();
+    expect(result).toEqual([]);
+  });
+
+  it('returns empty array with empty localStorage', () => {
+    const result = loadFriends();
+    expect(result).toEqual([]);
+  });
+
+  it('loads valid friends from localStorage', () => {
+    const friends = [{ username: 'Friend1', avatarIndex: 0, level: 5, xp: 2000 }];
+    localStorage.setItem(FRIENDS_KEY, JSON.stringify(friends));
+    const result = loadFriends();
+    expect(result.length).toBe(1);
+    expect(result[0].username).toBe('Friend1');
   });
 });

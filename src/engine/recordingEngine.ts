@@ -170,23 +170,41 @@ export function loadRecordings(): Recording[] {
 }
 
 export function saveRecording(recording: Recording): void {
-  const recordings = loadRecordings();
-  recordings.push(recording);
-  const trimmed = recordings.slice(-50);
-  localStorage.setItem(RECORDINGS_KEY, JSON.stringify(trimmed));
+  // Don't save empty recordings
+  if (recording.events.length === 0) return;
+  try {
+    const recordings = loadRecordings();
+    recordings.push(recording);
+    const trimmed = recordings.slice(-50);
+    const json = JSON.stringify(trimmed);
+    if (json.length > 4 * 1024 * 1024) {
+      console.warn('[PianoHero] Recordings approaching localStorage limit');
+    }
+    localStorage.setItem(RECORDINGS_KEY, json);
+  } catch (e) {
+    console.error('[PianoHero] Failed to save recording:', e);
+  }
 }
 
 export function deleteRecording(id: string): void {
-  const recordings = loadRecordings().filter(r => r.id !== id);
-  localStorage.setItem(RECORDINGS_KEY, JSON.stringify(recordings));
+  try {
+    const recordings = loadRecordings().filter(r => r.id !== id);
+    localStorage.setItem(RECORDINGS_KEY, JSON.stringify(recordings));
+  } catch (e) {
+    console.error('[PianoHero] Failed to delete recording:', e);
+  }
 }
 
 export function updateRecordingJournal(id: string, note: string): void {
-  const recordings = loadRecordings();
-  const recording = recordings.find(r => r.id === id);
-  if (recording) {
-    recording.journalNote = note;
-    localStorage.setItem(RECORDINGS_KEY, JSON.stringify(recordings));
+  try {
+    const recordings = loadRecordings();
+    const recording = recordings.find(r => r.id === id);
+    if (recording) {
+      recording.journalNote = note;
+      localStorage.setItem(RECORDINGS_KEY, JSON.stringify(recordings));
+    }
+  } catch (e) {
+    console.error('[PianoHero] Failed to update recording journal:', e);
   }
 }
 

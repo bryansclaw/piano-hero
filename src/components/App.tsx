@@ -44,7 +44,11 @@ function loadHighScores(): Record<string, Record<Difficulty, HighScore>> {
 }
 
 function saveHighScores(scores: Record<string, Record<Difficulty, HighScore>>) {
-  localStorage.setItem('piano-hero-scores', JSON.stringify(scores));
+  try {
+    localStorage.setItem('piano-hero-scores', JSON.stringify(scores));
+  } catch (e) {
+    console.error('[PianoHero] Failed to save high scores:', e);
+  }
 }
 
 const App: React.FC = () => {
@@ -129,6 +133,10 @@ const App: React.FC = () => {
 
   const handleSelectSong = useCallback(
     (songId: string, difficulty: Difficulty) => {
+      // Auto-stop recording if active
+      if (recordingSession.isRecording) {
+        setRecordingSession(() => createRecordingSession('', 'easy'));
+      }
       resetGame();
       loadSong(songId, difficulty);
       setSelectedDifficulty(difficulty);
@@ -136,7 +144,7 @@ const App: React.FC = () => {
       setPerformanceReport(null);
       setNoteTimings([]);
     },
-    [loadSong, resetGame],
+    [loadSong, resetGame, recordingSession.isRecording],
   );
 
   const handleStartGame = useCallback(() => {
@@ -268,12 +276,18 @@ const App: React.FC = () => {
 
   const handleStartRecording = useCallback(() => {
     if (currentSong) {
+      // Stop any existing recording first
+      if (recordingSession.isRecording) {
+        setRecordingSession(prev => stopRecording(prev));
+      }
       setRecordingSession(startRecording(createRecordingSession(currentSong.id, selectedDifficulty)));
     }
-  }, [currentSong, selectedDifficulty]);
+  }, [currentSong, selectedDifficulty, recordingSession.isRecording]);
 
   const handleStopRecording = useCallback(() => {
+    if (!recordingSession.isRecording) return;
     const stopped = stopRecording(recordingSession);
+    // Only save recordings with actual events
     if (stopped.events.length > 0 && currentSong) {
       const recording: Recording = {
         id: generateRecordingId(),
@@ -299,6 +313,7 @@ const App: React.FC = () => {
 
   const handleStartLesson = useCallback((lesson: Lesson) => {
     resetGame();
+    practiceTools.resetPracticeTools();
     // Curriculum lessons use exerciseNotes — inject them as a custom song
     if (lesson.exerciseNotes && lesson.exerciseNotes.length > 0) {
       loadCustomSong({
@@ -322,16 +337,24 @@ const App: React.FC = () => {
     setMode('game');
     setPerformanceReport(null);
     setNoteTimings([]);
-  }, [loadSong, loadCustomSong, resetGame]);
+  }, [loadSong, loadCustomSong, resetGame, practiceTools]);
 
   const handleModeChange = useCallback((newMode: AppMode) => {
+    // Auto-stop recording if active when switching modes
+    if (recordingSession.isRecording) {
+      setRecordingSession(() => createRecordingSession('', 'easy'));
+    }
     // Reset game engine when leaving game mode to prevent stale state
     if (newMode !== 'game') {
       resetGame();
       setPerformanceReport(null);
     }
+    // Stop metronome when leaving practice mode
+    if (mode === 'practice' && newMode !== 'practice') {
+      practiceTools.resetPracticeTools();
+    }
     setMode(newMode);
-  }, [resetGame]);
+  }, [resetGame, recordingSession.isRecording, mode, practiceTools]);
 
   const improvementInsight = useMemo(() => {
     if (!currentSong) return null;
@@ -449,6 +472,10 @@ const App: React.FC = () => {
                   <DifficultySelector
                     selected={selectedDifficulty}
                     onSelect={(d) => {
+                      // Reset game when changing difficulty during gameplay
+                      if (gameState === 'playing' || gameState === 'paused' || gameState === 'countdown') {
+                        resetGame();
+                      }
                       setSelectedDifficulty(d);
                       if (currentSong) loadSong(currentSong.id, d);
                     }}

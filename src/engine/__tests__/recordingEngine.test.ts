@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import {
   createRecordingSession,
   startRecording,
@@ -10,6 +10,8 @@ import {
   compareWithPerfect,
   exportRecordingSummary,
   generateRecordingId,
+  saveRecording,
+  loadRecordings,
 } from '../recordingEngine';
 import type { Recording, SongNote } from '../../types';
 
@@ -192,5 +194,77 @@ describe('generateRecordingId', () => {
     const id2 = generateRecordingId();
     expect(id1).not.toBe(id2);
     expect(id1.startsWith('rec-')).toBe(true);
+  });
+});
+
+describe('saveRecording - empty recording', () => {
+  const RECORDINGS_KEY = 'piano-hero-recordings';
+
+  beforeEach(() => {
+    localStorage.removeItem(RECORDINGS_KEY);
+  });
+
+  afterEach(() => {
+    localStorage.removeItem(RECORDINGS_KEY);
+  });
+
+  it('does not save recording with 0 events', () => {
+    const emptyRecording: Recording = {
+      id: 'rec-empty',
+      name: 'Empty',
+      songId: 'test',
+      difficulty: 'easy',
+      date: new Date().toISOString(),
+      duration: 0,
+      events: [],
+      score: 0,
+      accuracy: 0,
+      journalNote: '',
+    };
+    saveRecording(emptyRecording);
+    const recordings = loadRecordings();
+    expect(recordings.length).toBe(0);
+  });
+
+  it('saves recording with events', () => {
+    const recording: Recording = {
+      id: 'rec-valid',
+      name: 'Valid',
+      songId: 'test',
+      difficulty: 'easy',
+      date: new Date().toISOString(),
+      duration: 1,
+      events: [{ midi: 60, velocity: 100, timestamp: 500, type: 'noteOn' }],
+      score: 1000,
+      accuracy: 90,
+      journalNote: '',
+    };
+    saveRecording(recording);
+    const recordings = loadRecordings();
+    expect(recordings.length).toBe(1);
+    expect(recordings[0].id).toBe('rec-valid');
+  });
+});
+
+describe('loadRecordings - localStorage resilience', () => {
+  const RECORDINGS_KEY = 'piano-hero-recordings';
+
+  beforeEach(() => {
+    localStorage.removeItem(RECORDINGS_KEY);
+  });
+
+  afterEach(() => {
+    localStorage.removeItem(RECORDINGS_KEY);
+  });
+
+  it('returns empty array with corrupted localStorage', () => {
+    localStorage.setItem(RECORDINGS_KEY, 'not valid json{{{');
+    const result = loadRecordings();
+    expect(result).toEqual([]);
+  });
+
+  it('returns empty array with empty localStorage', () => {
+    const result = loadRecordings();
+    expect(result).toEqual([]);
   });
 });
