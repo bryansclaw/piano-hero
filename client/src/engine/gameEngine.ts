@@ -14,11 +14,14 @@ export interface GameEngineState {
   lastRatingTime: number;
 }
 
+// Lead-in time (seconds) before the first note arrives at the hit line
+const LEAD_IN_TIME = 3;
+
 export function createGameEngine(config: GameConfig, notes: SongNote[], songDuration: number): GameEngineState {
   const fallingNotes: FallingNote[] = notes.map((n, i) => ({
     id: `note-${i}-${n.midi}-${n.time}`,
     midi: n.midi,
-    time: n.time,
+    time: n.time + LEAD_IN_TIME, // Offset all notes so first one doesn't arrive immediately
     duration: n.duration,
     y: -100,
     hit: false,
@@ -32,7 +35,7 @@ export function createGameEngine(config: GameConfig, notes: SongNote[], songDura
     currentTime: 0,
     countdown: 3,
     config,
-    songDuration,
+    songDuration: songDuration + LEAD_IN_TIME,
     lastRating: null,
     lastRatingTime: 0,
   };
