@@ -1,40 +1,6 @@
-import React, { useCallback, useEffect, useRef } from 'react';
+import React, { useCallback } from 'react';
 import { isBlackKey, midiToNoteName } from '../utils/midiUtils';
 import { PIANO_MIN_NOTE, PIANO_MAX_NOTE } from '../utils/constants';
-
-// Computer keyboard → MIDI note mapping (2 octaves around middle C)
-// Lower row: C4-C5 white keys
-// Upper row: C5-C6 white keys
-const KEYBOARD_MAP: Record<string, number> = {
-  // Lower octave (C4=60 to B4=71) — home row
-  'a': 60,  // C4
-  'w': 61,  // C#4
-  's': 62,  // D4
-  'e': 63,  // D#4
-  'd': 64,  // E4
-  'f': 65,  // F4
-  't': 66,  // F#4
-  'g': 67,  // G4
-  'y': 68,  // G#4
-  'h': 69,  // A4
-  'u': 70,  // A#4
-  'j': 71,  // B4
-  // Upper octave (C5=72 to C6=84) — upper row
-  'k': 72,  // C5
-  'o': 73,  // C#5
-  'l': 74,  // D5
-  'p': 75,  // D#5
-  ';': 76,  // E5
-  "'": 77,  // F5
-  // Number row for even higher
-  'z': 48,  // C3
-  'x': 50,  // D3
-  'c': 52,  // E3
-  'v': 53,  // F3
-  'b': 55,  // G3
-  'n': 57,  // A3
-  'm': 59,  // B3
-};
 
 interface PianoKeyboardProps {
   activeNotes: Set<number>;
@@ -55,45 +21,6 @@ const PianoKeyboard: React.FC<PianoKeyboardProps> = ({
   onNoteOn,
   onNoteOff,
 }) => {
-  // Track which keyboard keys are currently held down to prevent repeat events
-  const heldKeys = useRef<Set<string>>(new Set());
-
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Don't capture if typing in an input/textarea
-      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
-
-      const key = e.key.toLowerCase();
-      if (KEYBOARD_MAP[key] !== undefined && !heldKeys.current.has(key)) {
-        heldKeys.current.add(key);
-        onNoteOn?.(KEYBOARD_MAP[key]);
-      }
-    };
-
-    const handleKeyUp = (e: KeyboardEvent) => {
-      const key = e.key.toLowerCase();
-      if (KEYBOARD_MAP[key] !== undefined) {
-        heldKeys.current.delete(key);
-        onNoteOff?.(KEYBOARD_MAP[key]);
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    window.addEventListener('keyup', handleKeyUp);
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-      window.removeEventListener('keyup', handleKeyUp);
-    };
-  }, [onNoteOn, onNoteOff]);
-
-  // Find the keyboard shortcut for a note (if any)
-  const getKeyboardShortcut = useCallback((note: number): string | null => {
-    for (const [key, midi] of Object.entries(KEYBOARD_MAP)) {
-      if (midi === note) return key === ';' ? ';' : key === "'" ? "'" : key.toUpperCase();
-    }
-    return null;
-  }, []);
-
   const getKeyColor = useCallback(
     (note: number) => {
       if (correctNotes.has(note)) return '#34d399';
@@ -162,14 +89,9 @@ const PianoKeyboard: React.FC<PianoKeyboardProps> = ({
             onPointerLeave={() => onNoteOff?.(note)}
             aria-label={midiToNoteName(note)}
           >
-            {showNoteNames && (
-              <span className="absolute bottom-1 left-1/2 -translate-x-1/2 text-[8px] text-slate-500 flex flex-col items-center gap-0.5">
-                {note % 12 === 0 && <span>{midiToNoteName(note)}</span>}
-                {getKeyboardShortcut(note) && (
-                  <span className="bg-slate-200 dark:bg-slate-600 rounded px-1 text-[7px] font-mono text-slate-600 dark:text-slate-300">
-                    {getKeyboardShortcut(note)}
-                  </span>
-                )}
+            {showNoteNames && note % 12 === 0 && (
+              <span className="absolute bottom-1 left-1/2 -translate-x-1/2 text-[8px] text-slate-500">
+                {midiToNoteName(note)}
               </span>
             )}
           </button>
