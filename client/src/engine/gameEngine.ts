@@ -102,7 +102,11 @@ export function updateGame(
   });
 
   // Check if song is complete (handles 0-note songs gracefully)
-  const allDone = (newNotes.length === 0 || newNotes.every((n) => n.hit)) && newTime > state.songDuration;
+  const allNotesHit = newNotes.length === 0 || newNotes.every((n) => n.hit);
+  const lastNoteTime = newNotes.length > 0 ? Math.max(...newNotes.map(n => n.time)) : 0;
+  // Complete when: all notes are hit/missed AND we've passed the last note by 2 seconds,
+  // OR we've exceeded the song duration + 2 seconds
+  const allDone = allNotesHit && (newTime > lastNoteTime + 2 || newTime > state.songDuration);
   if (allDone || newTime > state.songDuration + 2) {
     const maxScore = calculateMaxScore(state.fallingNotes.length);
     const stars = calculateStars(newScore.points, maxScore);

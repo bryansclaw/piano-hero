@@ -452,7 +452,7 @@ const App: React.FC = () => {
         artist: 'Curriculum',
         bpm: lesson.exerciseBpm || 80,
         key: 'C',
-        duration: Math.max(...lesson.exerciseNotes.map(n => n.time + n.duration), 30),
+        duration: Math.max(...lesson.exerciseNotes.map(n => n.time + n.duration)) + 3,
         notes: {
           easy: lesson.exerciseNotes,
           medium: lesson.exerciseNotes,

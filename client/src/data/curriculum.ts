@@ -27,7 +27,7 @@ function createFundamentalsLessons(): Lesson[] {
       explanation: 'Middle C (MIDI 60) is the foundation of piano. Place your right thumb on it. Keep your wrist relaxed and fingers curved.',
       exerciseNotes: [
         makeNote(60, 0, 0.8), makeNote(60, 1, 0.8), makeNote(60, 2, 0.8), makeNote(60, 3, 0.8),
-        makeNote(60, 4, 0.8), makeNote(60, 62, 1.6), makeNote(60, 6, 0.8), makeNote(60, 7, 0.8),
+        makeNote(60, 4, 0.8), makeNote(60, 5, 1.6), makeNote(60, 6, 0.8), makeNote(60, 7, 0.8),
       ],
       exerciseBpm: 80, passingAccuracy: 70, prerequisites: [], completed: false, bestAccuracy: 0,
     },
