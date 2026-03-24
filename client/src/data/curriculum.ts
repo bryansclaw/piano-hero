@@ -498,6 +498,34 @@ export function getCurriculum(): SkillPathData[] {
   ];
 }
 
+// ===== Lesson navigation =====
+export function getNextLesson(currentLessonId: string, completedLessons: Set<string>): Lesson | null {
+  const curriculum = getCurriculum();
+  // Find which path the current lesson belongs to
+  for (const path of curriculum) {
+    const idx = path.lessons.findIndex(l => l.id === currentLessonId);
+    if (idx === -1) continue;
+    // Look for the next lesson in the same path
+    for (let i = idx + 1; i < path.lessons.length; i++) {
+      const next = path.lessons[i];
+      if (isLessonAvailable(next, completedLessons)) {
+        return next;
+      }
+    }
+    // No more in this path — check if there's a next path with available lessons
+    const pathIdx = curriculum.indexOf(path);
+    for (let p = pathIdx + 1; p < curriculum.length; p++) {
+      for (const lesson of curriculum[p].lessons) {
+        if (isLessonAvailable(lesson, completedLessons)) {
+          return lesson;
+        }
+      }
+    }
+    return null;
+  }
+  return null;
+}
+
 // ===== Lesson state =====
 export function isLessonAvailable(lesson: Lesson, completedLessons: Set<string>): boolean {
   return lesson.prerequisites.every(p => completedLessons.has(p));

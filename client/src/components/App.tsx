@@ -29,6 +29,8 @@ import { createInitialScore } from '../engine/scoring';
 import { generatePerformanceReport, savePerformanceReport, getImprovementInsight } from '../engine/performanceAnalyzer';
 import { timeToMeasure } from '../engine/performanceAnalyzer';
 import { updateStreak, calculateXpFromScore, checkAchievements, generateWeeklyChallenge, levelFromXp, createDefaultProfile } from '../engine/socialEngine';
+import { getNextLesson, getCurriculum } from '../data/curriculum';
+import NextLessonCountdown from './NextLessonCountdown';
 import { createRecordingSession, startRecording, stopRecording, addRecordingEvent, getRecordingDuration, generateRecordingId } from '../engine/recordingEngine';
 
 
@@ -66,6 +68,7 @@ const App: React.FC = () => {
   });
   const [completedLessons, setCompletedLessons] = useState<Set<string>>(new Set());
   const [performanceReport, setPerformanceReport] = useState<PerformanceReport | null>(null);
+  const [currentLessonId, setCurrentLessonId] = useState<string | null>(null);
   const [noteTimings, setNoteTimings] = useState<NoteTimingData[]>([]);
   const [recentUnlocks, setRecentUnlocks] = useState<string[]>([]);
   const [recordingSession, setRecordingSession] = useState(createRecordingSession('', 'easy'));
@@ -187,6 +190,7 @@ const App: React.FC = () => {
         setRecordingSession(() => createRecordingSession('', 'easy'));
       }
       resetGame();
+      setCurrentLessonId(null);
       loadSong(songId, difficulty);
       setSelectedDifficulty(difficulty);
       setMode('game');
@@ -212,6 +216,7 @@ const App: React.FC = () => {
   const handleBackToLibrary = useCallback(() => {
     resetGame();
     setPerformanceReport(null);
+    setCurrentLessonId(null);
     setMode('library');
   }, [resetGame]);
 
@@ -403,6 +408,7 @@ const App: React.FC = () => {
   const handleStartLesson = useCallback((lesson: Lesson) => {
     resetGame();
     practiceTools.resetPracticeTools();
+    setCurrentLessonId(lesson.id);
     // Curriculum lessons use exerciseNotes — inject them as a custom song
     if (lesson.exerciseNotes && lesson.exerciseNotes.length > 0) {
       loadCustomSong({
@@ -451,6 +457,29 @@ const App: React.FC = () => {
   }, [analytics.sessionHistory, currentSong]);
 
   const score = engineState?.score ?? createInitialScore();
+
+  // Compute next lesson for autoplay (Netflix-style)
+  const nextLesson = useMemo(() => {
+    if (!currentLessonId) return null;
+    // Add current lesson to completed set for next-lesson lookup
+    const updatedCompleted = new Set(completedLessons);
+    updatedCompleted.add(currentLessonId);
+    return getNextLesson(currentLessonId, updatedCompleted);
+  }, [currentLessonId, completedLessons]);
+
+  // Whether the completed lesson passed (met accuracy threshold)
+  const lessonPassed = useMemo(() => {
+    if (!currentLessonId || gameState !== 'complete' || !engineState) return false;
+    // Find the lesson's passing accuracy
+    const curriculum = getCurriculum();
+    for (const path of curriculum) {
+      const lesson = path.lessons.find(l => l.id === currentLessonId);
+      if (lesson) {
+        return engineState.score.accuracy >= lesson.passingAccuracy;
+      }
+    }
+    return false;
+  }, [currentLessonId, gameState, engineState]);
 
   if (!dataLoaded) {
     return (
@@ -581,7 +610,29 @@ const App: React.FC = () => {
                   songTitle={currentSong?.title ?? 'Unknown'}
                   onRetry={handleRetry}
                   onBackToLibrary={handleBackToLibrary}
+                  isLesson={!!currentLessonId}
+                  lessonPassed={lessonPassed}
+                  onBackToCurriculum={() => {
+                    resetGame();
+                    setPerformanceReport(null);
+                    setCurrentLessonId(null);
+                    setMode('curriculum');
+                  }}
                 />
+                {/* Netflix-style autoplay for curriculum lessons */}
+                {lessonPassed && nextLesson && (
+                  <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <NextLessonCountdown
+                      nextLesson={nextLesson}
+                      countdownSeconds={15}
+                      onStartLesson={handleStartLesson}
+                      onCancel={() => {
+                        setCurrentLessonId(null);
+                        setMode('curriculum');
+                      }}
+                    />
+                  </div>
+                )}
                 {performanceReport && (
                   <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pb-6">
                     <AIFeedback
