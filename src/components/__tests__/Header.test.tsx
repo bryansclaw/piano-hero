@@ -15,7 +15,7 @@ describe('Header', () => {
     expect(screen.getByText('Home')).toBeInTheDocument();
     expect(screen.getByText('Practice')).toBeInTheDocument();
     expect(screen.getByText('Game')).toBeInTheDocument();
-    expect(screen.getByText('Settings')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Settings' })).toBeInTheDocument();
     expect(screen.getByText('Curriculum')).toBeInTheDocument();
     expect(screen.getByText('Analytics')).toBeInTheDocument();
     expect(screen.getByText('Leaderboard')).toBeInTheDocument();
@@ -41,7 +41,7 @@ describe('Header', () => {
     fireEvent.click(screen.getByText('Practice'));
     expect(fn).toHaveBeenCalledWith('practice');
     
-    fireEvent.click(screen.getByText('Settings'));
+    fireEvent.click(screen.getByRole('button', { name: 'Settings' }));
     expect(fn).toHaveBeenCalledWith('settings');
     
     fireEvent.click(screen.getByText('Curriculum'));

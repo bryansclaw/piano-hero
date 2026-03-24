@@ -1,7 +1,6 @@
 import React, { useRef, useEffect } from 'react';
 import type { SongNote } from '../types';
 
-
 interface SheetMusicProps {
   notes: SongNote[];
   currentTime: number;
@@ -25,14 +24,17 @@ const SheetMusic: React.FC<SheetMusicProps> = ({ notes, currentTime, playedNotes
     canvas.width = width;
     canvas.height = height;
 
+    // Detect theme
+    const isDark = document.documentElement.classList.contains('dark');
+
     // Clear
-    ctx.fillStyle = '#1a1a3e';
+    ctx.fillStyle = isDark ? '#1e293b' : '#f1f5f9';
     ctx.fillRect(0, 0, width, height);
 
     // Draw staff lines
     const staffY = 60;
     const lineSpacing = 12;
-    ctx.strokeStyle = '#3a3a6e';
+    ctx.strokeStyle = isDark ? '#334155' : '#cbd5e1';
     ctx.lineWidth = 1;
 
     // Treble staff
@@ -55,14 +57,14 @@ const SheetMusic: React.FC<SheetMusicProps> = ({ notes, currentTime, playedNotes
     }
 
     // Draw clef labels
-    ctx.fillStyle = '#b0b0d0';
+    ctx.fillStyle = isDark ? '#94a3b8' : '#64748b';
     ctx.font = '20px serif';
     ctx.fillText('𝄞', 10, staffY + 35);
     ctx.fillText('𝄢', 10, bassStaffY + 35);
 
     // Draw notes
     if (notes.length === 0) {
-      ctx.fillStyle = '#7070a0';
+      ctx.fillStyle = isDark ? '#64748b' : '#94a3b8';
       ctx.font = '14px sans-serif';
       ctx.fillText('No notes to display', width / 2 - 60, height / 2);
       return;
@@ -80,25 +82,21 @@ const SheetMusic: React.FC<SheetMusicProps> = ({ notes, currentTime, playedNotes
       const x = 60 + (note.time - visibleWindowStart) * pixelsPerSecond;
       const isRight = note.hand === 'right';
 
-      // Simple vertical mapping: higher MIDI = higher on staff
       const baseY = isRight ? staffY : bassStaffY;
       const noteY = baseY + 40 - ((note.midi - 48) / 40) * 60;
 
-      // Color based on played status
       const noteIdx = notes.indexOf(note);
       const status = playedNotes?.get(noteIdx);
       if (note.time < currentTime) {
-        ctx.fillStyle = status === 'correct' ? '#69f0ae' : status === 'wrong' ? '#ff4444' : '#7070a0';
+        ctx.fillStyle = status === 'correct' ? '#34d399' : status === 'wrong' ? '#f87171' : (isDark ? '#64748b' : '#94a3b8');
       } else {
-        ctx.fillStyle = '#e040fb';
+        ctx.fillStyle = '#ec4899';
       }
 
-      // Draw note head
       ctx.beginPath();
       ctx.ellipse(x, noteY, 6, 4, -0.2, 0, Math.PI * 2);
       ctx.fill();
 
-      // Draw note stem
       ctx.strokeStyle = ctx.fillStyle;
       ctx.lineWidth = 1.5;
       ctx.beginPath();
@@ -109,7 +107,7 @@ const SheetMusic: React.FC<SheetMusicProps> = ({ notes, currentTime, playedNotes
 
     // Draw current time marker
     const markerX = 60 + 2 * pixelsPerSecond;
-    ctx.strokeStyle = '#ff408180';
+    ctx.strokeStyle = isDark ? '#ec489980' : '#ec489960';
     ctx.lineWidth = 2;
     ctx.beginPath();
     ctx.moveTo(markerX, staffY - 10);

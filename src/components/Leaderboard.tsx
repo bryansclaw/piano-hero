@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import type { LeaderboardEntry, Friend, HighScore, Difficulty } from '../types';
 import { SONG_CATALOG } from '../data/songCatalog';
 import { generateMockLeaderboard, getPlayerPercentile } from '../engine/socialEngine';
+import { Trophy, Globe, Users, UserPlus, Star, X, Medal } from 'lucide-react';
 
 interface LeaderboardProps {
   highScores: Record<string, Record<Difficulty, HighScore>>;
@@ -10,6 +11,12 @@ interface LeaderboardProps {
   onAddFriend?: (username: string) => void;
   onRemoveFriend?: (username: string) => void;
 }
+
+const RANK_STYLES: Record<number, { icon: typeof Medal; color: string }> = {
+  1: { icon: Medal, color: 'text-amber-400' },
+  2: { icon: Medal, color: 'text-slate-400' },
+  3: { icon: Medal, color: 'text-amber-700' },
+};
 
 const Leaderboard: React.FC<LeaderboardProps> = ({
   highScores,
@@ -72,14 +79,17 @@ const Leaderboard: React.FC<LeaderboardProps> = ({
   };
 
   return (
-    <div className="p-6 max-w-3xl mx-auto space-y-4" data-testid="leaderboard">
-      <h2 className="text-2xl font-bold text-white">🏆 Leaderboard</h2>
+    <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 space-y-4" data-testid="leaderboard">
+      <h2 className="flex items-center gap-2 text-2xl font-bold text-slate-900 dark:text-white">
+        <Trophy size={24} className="text-amber-500" />
+        Leaderboard
+      </h2>
 
       {/* Song selector */}
       <select
         value={selectedSongId}
         onChange={(e) => setSelectedSongId(e.target.value)}
-        className="bg-[#0a0a1a] border border-[#2a2a5e] rounded-lg px-3 py-2 text-white text-sm w-full"
+        className="w-full rounded-lg border px-3 py-2.5 text-sm bg-white border-slate-200 text-slate-700 dark:bg-slate-800/60 dark:border-slate-700/50 dark:text-white focus:outline-none focus:ring-2 focus:ring-cyan-500/40"
         aria-label="Select song"
         data-testid="song-select"
       >
@@ -92,32 +102,34 @@ const Leaderboard: React.FC<LeaderboardProps> = ({
       <div className="flex gap-2">
         <button
           onClick={() => setActiveTab('global')}
-          className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+          className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
             activeTab === 'global'
-              ? 'bg-[#e040fb]/20 text-[#e040fb] border border-[#e040fb]/40'
-              : 'text-[#b0b0d0] hover:text-white bg-[#0a0a1a]'
+              ? 'bg-pink-500/10 text-pink-600 dark:text-pink-400 border border-pink-500/30'
+              : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white bg-slate-100 dark:bg-slate-800/60'
           }`}
           data-testid="global-tab"
         >
-          🌍 Global
+          <Globe size={16} />
+          Global
         </button>
         <button
           onClick={() => setActiveTab('friends')}
-          className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+          className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
             activeTab === 'friends'
-              ? 'bg-[#40c4ff]/20 text-[#40c4ff] border border-[#40c4ff]/40'
-              : 'text-[#b0b0d0] hover:text-white bg-[#0a0a1a]'
+              ? 'bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border border-cyan-500/30'
+              : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white bg-slate-100 dark:bg-slate-800/60'
           }`}
           data-testid="friends-tab"
         >
-          👥 Friends
+          <Users size={16} />
+          Friends
         </button>
       </div>
 
       {/* Percentile */}
       {activeTab === 'global' && playerBestScore !== undefined && (
-        <div className="bg-[#0a0a1a] rounded-lg p-3 text-center" data-testid="percentile-display">
-          <span className="text-[#69f0ae] font-bold">You're in the top {100 - percentile}% of players on this song!</span>
+        <div className="bg-emerald-50 dark:bg-emerald-500/10 rounded-lg p-3 text-center border border-emerald-200 dark:border-emerald-500/20" data-testid="percentile-display">
+          <span className="text-emerald-600 dark:text-emerald-400 font-bold text-sm">You're in the top {100 - percentile}% of players on this song!</span>
         </div>
       )}
 
@@ -129,24 +141,25 @@ const Leaderboard: React.FC<LeaderboardProps> = ({
             placeholder="Add friend username..."
             value={friendInput}
             onChange={(e) => setFriendInput(e.target.value)}
-            className="flex-1 bg-[#0a0a1a] border border-[#2a2a5e] rounded-lg px-3 py-2 text-white text-sm"
+            className="flex-1 rounded-lg border px-3 py-2 text-sm bg-white border-slate-200 text-slate-900 dark:bg-slate-800/60 dark:border-slate-700/50 dark:text-white focus:outline-none focus:ring-2 focus:ring-cyan-500/40"
             data-testid="friend-input"
           />
           <button
             onClick={handleAddFriend}
-            className="px-4 py-2 bg-[#40c4ff] text-white rounded-lg text-sm font-bold"
+            className="flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-cyan-500 to-pink-500 text-white rounded-lg text-sm font-medium hover:opacity-90 active:scale-95 transition-all"
             data-testid="add-friend-btn"
           >
+            <UserPlus size={16} />
             Add
           </button>
         </div>
       )}
 
       {/* Leaderboard table */}
-      <div className="bg-[#1a1a3e] rounded-xl border border-[#2a2a5e] overflow-hidden">
-        <table className="w-full">
+      <div className="bg-white dark:bg-slate-800/60 rounded-xl border border-slate-200 dark:border-slate-700/50 overflow-hidden overflow-x-auto">
+        <table className="w-full min-w-[400px]">
           <thead>
-            <tr className="text-xs text-[#7070a0] uppercase border-b border-[#2a2a5e]">
+            <tr className="text-xs text-slate-400 dark:text-slate-500 uppercase border-b border-slate-200 dark:border-slate-700/50">
               <th className="px-4 py-3 text-left">Rank</th>
               <th className="px-4 py-3 text-left">Player</th>
               <th className="px-4 py-3 text-right">Score</th>
@@ -154,45 +167,57 @@ const Leaderboard: React.FC<LeaderboardProps> = ({
             </tr>
           </thead>
           <tbody>
-            {currentLeaderboard.map((entry) => (
-              <tr
-                key={`${entry.username}-${entry.rank}`}
-                className={`border-b border-[#2a2a5e]/50 transition-colors ${
-                  entry.isPlayer ? 'bg-[#e040fb]/10' : 'hover:bg-[#0a0a1a]/50'
-                }`}
-                data-testid="leaderboard-row"
-              >
-                <td className="px-4 py-3">
-                  <span className={`font-bold ${
-                    entry.rank === 1 ? 'text-[#ffdd00]' :
-                    entry.rank === 2 ? 'text-[#c0c0c0]' :
-                    entry.rank === 3 ? 'text-[#cd7f32]' : 'text-[#7070a0]'
-                  }`}>
-                    {entry.rank <= 3 ? ['🥇', '🥈', '🥉'][entry.rank - 1] : `#${entry.rank}`}
-                  </span>
-                </td>
-                <td className="px-4 py-3">
-                  <span className={`font-medium ${entry.isPlayer ? 'text-[#e040fb]' : 'text-white'}`}>
-                    {entry.username}
-                    {entry.isPlayer && <span className="text-xs ml-1 text-[#7070a0]">(you)</span>}
-                  </span>
-                  {activeTab === 'friends' && !entry.isPlayer && onRemoveFriend && (
-                    <button
-                      onClick={() => onRemoveFriend(entry.username)}
-                      className="ml-2 text-xs text-[#ff4444] hover:text-[#ff6666]"
-                    >
-                      ✕
-                    </button>
-                  )}
-                </td>
-                <td className="px-4 py-3 text-right text-white font-mono">
-                  {entry.score.toLocaleString()}
-                </td>
-                <td className="px-4 py-3 text-right text-[#ffdd00]">
-                  {'⭐'.repeat(Math.min(entry.stars, 5))}
-                </td>
-              </tr>
-            ))}
+            {currentLeaderboard.map((entry) => {
+              const rankStyle = RANK_STYLES[entry.rank];
+              return (
+                <tr
+                  key={`${entry.username}-${entry.rank}`}
+                  className={`border-b border-slate-100 dark:border-slate-700/30 transition-colors ${
+                    entry.isPlayer
+                      ? 'bg-pink-50 dark:bg-pink-500/5'
+                      : entry.rank % 2 === 0
+                        ? 'bg-slate-50/50 dark:bg-slate-900/20'
+                        : ''
+                  } hover:bg-slate-100 dark:hover:bg-slate-700/30`}
+                  data-testid="leaderboard-row"
+                >
+                  <td className="px-4 py-3">
+                    {rankStyle ? (
+                      <span className={`flex items-center gap-1 font-bold ${rankStyle.color}`}>
+                        <Medal size={16} className="fill-current" />
+                        #{entry.rank}
+                      </span>
+                    ) : (
+                      <span className="text-slate-400 dark:text-slate-500 font-medium">#{entry.rank}</span>
+                    )}
+                  </td>
+                  <td className="px-4 py-3">
+                    <span className={`font-medium ${entry.isPlayer ? 'text-pink-600 dark:text-pink-400' : 'text-slate-900 dark:text-white'}`}>
+                      {entry.username}
+                      {entry.isPlayer && <span className="text-xs ml-1 text-slate-400 dark:text-slate-500">(you)</span>}
+                    </span>
+                    {activeTab === 'friends' && !entry.isPlayer && onRemoveFriend && (
+                      <button
+                        onClick={() => onRemoveFriend(entry.username)}
+                        className="ml-2 text-rose-400 hover:text-rose-500 transition-colors"
+                      >
+                        <X size={14} />
+                      </button>
+                    )}
+                  </td>
+                  <td className="px-4 py-3 text-right text-slate-900 dark:text-white font-mono">
+                    {entry.score.toLocaleString()}
+                  </td>
+                  <td className="px-4 py-3 text-right">
+                    <span className="flex items-center justify-end gap-0.5 text-amber-500">
+                      {Array.from({ length: Math.min(entry.stars, 5) }).map((_, i) => (
+                        <Star key={i} size={14} className="fill-current" />
+                      ))}
+                    </span>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>

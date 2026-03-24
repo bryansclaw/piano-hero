@@ -1,5 +1,6 @@
 import React from 'react';
 import type { PracticeToolsState, LoopRange } from '../types';
+import { Timer, Repeat, Volume2, VolumeX, Gauge, Zap } from 'lucide-react';
 
 interface PracticeToolsProps {
   state: PracticeToolsState;
@@ -27,29 +28,33 @@ const PracticeTools: React.FC<PracticeToolsProps> = ({
   totalMeasures = 32,
 }) => {
   return (
-    <div className="bg-[#1a1a3e] rounded-xl p-4 border border-[#2a2a5e] space-y-4" data-testid="practice-tools">
+    <div className="bg-white dark:bg-slate-800/60 rounded-xl p-5 border border-slate-200 dark:border-slate-700/50 space-y-4" data-testid="practice-tools">
       {/* Practice Mode Indicator */}
-      <div className="flex items-center gap-3 text-sm text-[#b0b0d0]" data-testid="practice-indicator">
-        <span className="bg-[#e040fb]/20 text-[#e040fb] px-2 py-1 rounded text-xs font-bold">
+      <div className="flex items-center gap-3 text-sm" data-testid="practice-indicator">
+        <span className="bg-pink-500/10 text-pink-600 dark:text-pink-400 px-2.5 py-1 rounded-md text-xs font-bold">
           {state.autoSpeedUp ? `${state.currentAutoTempo}%` : `${state.tempoPercent}%`} tempo
         </span>
         {state.loopEnabled && state.loopRange && (
-          <span className="bg-[#40c4ff]/20 text-[#40c4ff] px-2 py-1 rounded text-xs font-bold">
+          <span className="bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 px-2.5 py-1 rounded-md text-xs font-bold flex items-center gap-1">
+            <Repeat size={12} />
             Loop: m{state.loopRange.startMeasure}-{state.loopRange.endMeasure}
           </span>
         )}
         {state.metronomeEnabled && (
-          <span className={`px-2 py-1 rounded text-xs font-bold transition-colors ${
-            metronomeTick ? 'bg-[#69f0ae] text-black' : 'bg-[#69f0ae]/20 text-[#69f0ae]'
+          <span className={`flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-bold transition-colors ${
+            metronomeTick
+              ? 'bg-emerald-400 text-white dark:text-slate-900'
+              : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
           }`}>
-            🔊 Metronome
+            <Timer size={12} />
+            Metronome
           </span>
         )}
       </div>
 
       {/* Tempo Control */}
       <div>
-        <label className="text-sm font-semibold text-[#b0b0d0] uppercase tracking-wider block mb-2">
+        <label className="text-sm font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider block mb-2">
           Tempo: {state.tempoPercent}%
         </label>
         <input
@@ -58,10 +63,10 @@ const PracticeTools: React.FC<PracticeToolsProps> = ({
           max={150}
           value={state.tempoPercent}
           onChange={(e) => onTempoChange(Number(e.target.value))}
-          className="w-full accent-[#e040fb]"
+          className="w-full accent-pink-500"
           data-testid="tempo-slider"
         />
-        <div className="flex justify-between text-xs text-[#7070a0] mt-1">
+        <div className="flex justify-between text-xs text-slate-400 dark:text-slate-500 mt-1">
           <span>25%</span>
           <span>100%</span>
           <span>150%</span>
@@ -71,25 +76,26 @@ const PracticeTools: React.FC<PracticeToolsProps> = ({
       {/* Section Looping */}
       <div className="space-y-2">
         <div className="flex items-center justify-between">
-          <label className="text-sm font-semibold text-[#b0b0d0] uppercase tracking-wider">
+          <label className="text-sm font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
             Section Loop
           </label>
           <button
             onClick={onToggleLoop}
-            className={`px-3 py-1 rounded-lg text-xs font-bold transition-colors ${
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
               state.loopEnabled
-                ? 'bg-[#40c4ff] text-white'
-                : 'bg-[#0a0a1a] text-[#7070a0] border border-[#2a2a5e]'
+                ? 'bg-cyan-500 text-white'
+                : 'bg-slate-100 dark:bg-slate-900/60 text-slate-500 dark:text-slate-500 border border-slate-200 dark:border-slate-700/50'
             }`}
             data-testid="loop-toggle"
           >
-            {state.loopEnabled ? '🔁 ON' : '🔁 OFF'}
+            <Repeat size={14} />
+            {state.loopEnabled ? 'ON' : 'OFF'}
           </button>
         </div>
         {state.loopEnabled && (
           <div className="flex gap-3 items-center">
-            <div className="flex items-center gap-1">
-              <span className="text-xs text-[#7070a0]">Start:</span>
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs text-slate-400 dark:text-slate-500">Start:</span>
               <input
                 type="number"
                 min={1}
@@ -99,12 +105,12 @@ const PracticeTools: React.FC<PracticeToolsProps> = ({
                   startMeasure: Number(e.target.value),
                   endMeasure: state.loopRange?.endMeasure ?? Math.min(Number(e.target.value) + 4, totalMeasures),
                 })}
-                className="w-16 bg-[#0a0a1a] border border-[#2a2a5e] rounded px-2 py-1 text-white text-xs text-center"
+                className="w-16 rounded-md border px-2 py-1 text-xs text-center bg-white border-slate-200 text-slate-900 dark:bg-slate-900/60 dark:border-slate-700/50 dark:text-white"
                 data-testid="loop-start"
               />
             </div>
-            <div className="flex items-center gap-1">
-              <span className="text-xs text-[#7070a0]">End:</span>
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs text-slate-400 dark:text-slate-500">End:</span>
               <input
                 type="number"
                 min={1}
@@ -114,7 +120,7 @@ const PracticeTools: React.FC<PracticeToolsProps> = ({
                   startMeasure: state.loopRange?.startMeasure ?? 1,
                   endMeasure: Number(e.target.value),
                 })}
-                className="w-16 bg-[#0a0a1a] border border-[#2a2a5e] rounded px-2 py-1 text-white text-xs text-center"
+                className="w-16 rounded-md border px-2 py-1 text-xs text-center bg-white border-slate-200 text-slate-900 dark:bg-slate-900/60 dark:border-slate-700/50 dark:text-white"
                 data-testid="loop-end"
               />
             </div>
@@ -124,36 +130,38 @@ const PracticeTools: React.FC<PracticeToolsProps> = ({
 
       {/* Metronome */}
       <div className="flex items-center justify-between">
-        <label className="text-sm font-semibold text-[#b0b0d0] uppercase tracking-wider">
+        <label className="text-sm font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
           Metronome
         </label>
         <button
           onClick={onToggleMetronome}
-          className={`px-3 py-1 rounded-lg text-xs font-bold transition-colors ${
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
             state.metronomeEnabled
-              ? 'bg-[#69f0ae] text-black'
-              : 'bg-[#0a0a1a] text-[#7070a0] border border-[#2a2a5e]'
+              ? 'bg-emerald-500 text-white'
+              : 'bg-slate-100 dark:bg-slate-900/60 text-slate-500 dark:text-slate-500 border border-slate-200 dark:border-slate-700/50'
           }`}
           data-testid="metronome-toggle"
         >
-          {state.metronomeEnabled ? '🔊 ON' : '🔇 OFF'}
+          {state.metronomeEnabled ? <Volume2 size={14} /> : <VolumeX size={14} />}
+          {state.metronomeEnabled ? 'ON' : 'OFF'}
         </button>
       </div>
 
       {/* Count-In */}
       <div className="flex items-center justify-between">
-        <label className="text-sm font-semibold text-[#b0b0d0] uppercase tracking-wider">
+        <label className="text-sm font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
           Count-In (1-2-3-4)
         </label>
         <button
           onClick={onToggleCountIn}
-          className={`px-3 py-1 rounded-lg text-xs font-bold transition-colors ${
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
             state.countInEnabled
-              ? 'bg-[#ffdd00] text-black'
-              : 'bg-[#0a0a1a] text-[#7070a0] border border-[#2a2a5e]'
+              ? 'bg-amber-400 text-slate-900'
+              : 'bg-slate-100 dark:bg-slate-900/60 text-slate-500 dark:text-slate-500 border border-slate-200 dark:border-slate-700/50'
           }`}
           data-testid="countin-toggle"
         >
+          <Gauge size={14} />
           {state.countInEnabled ? 'ON' : 'OFF'}
         </button>
       </div>
@@ -161,34 +169,35 @@ const PracticeTools: React.FC<PracticeToolsProps> = ({
       {/* Auto Speed-Up */}
       <div className="space-y-2">
         <div className="flex items-center justify-between">
-          <label className="text-sm font-semibold text-[#b0b0d0] uppercase tracking-wider">
+          <label className="text-sm font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
             Auto Speed-Up
           </label>
           <button
             onClick={onToggleAutoSpeedUp}
-            className={`px-3 py-1 rounded-lg text-xs font-bold transition-colors ${
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
               state.autoSpeedUp
-                ? 'bg-[#e040fb] text-white'
-                : 'bg-[#0a0a1a] text-[#7070a0] border border-[#2a2a5e]'
+                ? 'bg-pink-500 text-white'
+                : 'bg-slate-100 dark:bg-slate-900/60 text-slate-500 dark:text-slate-500 border border-slate-200 dark:border-slate-700/50'
             }`}
             data-testid="autospeed-toggle"
           >
-            {state.autoSpeedUp ? '🚀 ON' : '🚀 OFF'}
+            <Zap size={14} />
+            {state.autoSpeedUp ? 'ON' : 'OFF'}
           </button>
         </div>
         {state.autoSpeedUp && (
           <div className="flex items-center gap-2">
-            <span className="text-xs text-[#7070a0]">Target:</span>
+            <span className="text-xs text-slate-400 dark:text-slate-500">Target:</span>
             <input
               type="range"
               min={25}
               max={150}
               value={state.autoSpeedUpTarget}
               onChange={(e) => onAutoSpeedUpTargetChange(Number(e.target.value))}
-              className="flex-1 accent-[#e040fb]"
+              className="flex-1 accent-pink-500"
               data-testid="autospeed-target"
             />
-            <span className="text-xs text-white w-10 text-right">{state.autoSpeedUpTarget}%</span>
+            <span className="text-xs text-slate-700 dark:text-white w-10 text-right">{state.autoSpeedUpTarget}%</span>
           </div>
         )}
       </div>

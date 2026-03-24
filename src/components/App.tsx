@@ -22,6 +22,7 @@ import { useMidi } from '../hooks/useMidi';
 import { useSongLoader } from '../hooks/useSongLoader';
 import { useGameEngine } from '../hooks/useGameEngine';
 import { usePracticeTools } from '../hooks/usePracticeTools';
+import { useTheme } from '../hooks/useTheme';
 import { createInitialScore } from '../engine/scoring';
 import { generatePerformanceReport, savePerformanceReport, getImprovementInsight } from '../engine/performanceAnalyzer';
 import { timeToMeasure } from '../engine/performanceAnalyzer';
@@ -29,6 +30,9 @@ import { loadProfile, saveProfile, loadFriends, saveFriends, updateStreak, calcu
 import { loadAnalytics, saveAnalytics, recordSession } from '../engine/analyticsEngine';
 import { saveRecording, generateRecordingId, createRecordingSession, startRecording, stopRecording, addRecordingEvent, getRecordingDuration } from '../engine/recordingEngine';
 import { loadCompletedLessons } from '../data/curriculum';
+import {
+  Play, Pause, Music, Library, Volume2, Monitor, Settings as SettingsIcon,
+} from 'lucide-react';
 
 function loadHighScores(): Record<string, Record<Difficulty, HighScore>> {
   try {
@@ -49,6 +53,8 @@ const App: React.FC = () => {
   const [selectedDifficulty, setSelectedDifficulty] = useState<Difficulty>('easy');
   const [showNoteNames, setShowNoteNames] = useState(true);
   const [volume, setVolume] = useState(80);
+
+  const { theme, toggleTheme } = useTheme();
 
   // New feature state
   const [profile, setProfile] = useState<PlayerProfile>(loadProfile);
@@ -90,7 +96,6 @@ const App: React.FC = () => {
     (event: MidiNoteEvent) => {
       handleNote(event);
 
-      // Track note timing for performance analysis
       if (engineState && engineState.gameState === 'playing' && currentSong) {
         const bestMatch = engineState.fallingNotes.find(
           n => !n.hit && n.midi === event.note && Math.abs((engineState.currentTime - n.time) * 1000) <= 300
@@ -113,7 +118,6 @@ const App: React.FC = () => {
         }
       }
 
-      // Recording
       if (recordingSession.isRecording) {
         setRecordingSession(prev => addRecordingEvent(prev, event.note, event.velocity, 'noteOn'));
       }
@@ -176,7 +180,6 @@ const App: React.FC = () => {
         saveHighScores(newScores);
       }
 
-      // Generate performance report
       const report = generatePerformanceReport(
         currentSong.id,
         selectedDifficulty,
@@ -188,7 +191,6 @@ const App: React.FC = () => {
       setPerformanceReport(report);
       savePerformanceReport(report);
 
-      // Update analytics
       const session = {
         songId: currentSong.id,
         difficulty: selectedDifficulty,
@@ -201,7 +203,6 @@ const App: React.FC = () => {
       setAnalytics(updatedAnalytics);
       saveAnalytics(updatedAnalytics);
 
-      // Update profile: XP, streak, achievements
       const xpEarned = calculateXpFromScore(score.points, score.accuracy, score.stars);
       const updatedProfile = updateStreak({
         ...profile,
@@ -227,7 +228,6 @@ const App: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [gameState]);
 
-  // Handle on-screen keyboard clicks as MIDI input
   const handleKeyboardNoteOn = useCallback(
     (note: number) => {
       const event: MidiNoteEvent = {
@@ -241,7 +241,6 @@ const App: React.FC = () => {
     [onMidiNoteOn],
   );
 
-  // Profile updates
   const handleUpdateProfile = useCallback((updates: Partial<PlayerProfile>) => {
     setProfile(prev => {
       const updated = { ...prev, ...updates };
@@ -250,7 +249,6 @@ const App: React.FC = () => {
     });
   }, []);
 
-  // Friends management
   const handleAddFriend = useCallback((username: string) => {
     setFriends(prev => {
       const updated = [...prev, { username, avatarIndex: Math.floor(Math.random() * 12), level: Math.floor(Math.random() * 10) + 1, xp: Math.floor(Math.random() * 5000) }];
@@ -267,7 +265,6 @@ const App: React.FC = () => {
     });
   }, []);
 
-  // Recording
   const handleStartRecording = useCallback(() => {
     if (currentSong) {
       setRecordingSession(startRecording(createRecordingSession(currentSong.id, selectedDifficulty)));
@@ -296,13 +293,10 @@ const App: React.FC = () => {
 
   const handlePlayRecording = useCallback((recording: Recording) => {
     setPlaybackRecording(recording);
-    // Auto-clear after duration
     setTimeout(() => setPlaybackRecording(null), recording.duration * 1000);
   }, []);
 
-  // Curriculum lesson start
   const handleStartLesson = useCallback((lesson: Lesson) => {
-    // Load lesson exercise as a custom song
     loadSong(lesson.id, 'easy');
     setSelectedDifficulty('easy');
     setMode('game');
@@ -323,8 +317,13 @@ const App: React.FC = () => {
   const score = engineState?.score ?? createInitialScore();
 
   return (
-    <div className="min-h-screen bg-[#0a0a1a] text-white flex flex-col">
-      <Header currentMode={mode} onModeChange={handleModeChange} />
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100 flex flex-col overflow-x-hidden">
+      <Header
+        currentMode={mode}
+        onModeChange={handleModeChange}
+        theme={theme}
+        onToggleTheme={toggleTheme}
+      />
 
       <main className="flex-1">
         {mode === 'library' && (
@@ -332,43 +331,60 @@ const App: React.FC = () => {
         )}
 
         {mode === 'practice' && (
-          <div className="p-6 space-y-4">
-            <h2 className="text-2xl font-bold">Practice Mode</h2>
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 space-y-4">
+            <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Practice Mode</h2>
             {currentSong ? (
-              <>
-                <p className="text-[#b0b0d0]">
-                  Playing: {currentSong.title} by {currentSong.artist}
-                </p>
-                <PracticeTools
-                  state={practiceTools.state}
-                  onTempoChange={practiceTools.setTempo}
-                  onToggleLoop={practiceTools.toggleLoop}
-                  onSetLoopRange={practiceTools.setLoopRange}
-                  onToggleMetronome={practiceTools.toggleMetronome}
-                  onToggleCountIn={practiceTools.toggleCountIn}
-                  onToggleAutoSpeedUp={practiceTools.toggleAutoSpeedUp}
-                  onAutoSpeedUpTargetChange={practiceTools.setAutoSpeedUpTarget}
-                  metronomeTick={practiceTools.metronomeTick}
-                />
-                <Recorder
-                  isRecording={recordingSession.isRecording}
-                  onStartRecording={handleStartRecording}
-                  onStopRecording={handleStopRecording}
-                  onPlayRecording={handlePlayRecording}
-                  currentRecordingDuration={getRecordingDuration(recordingSession)}
-                  playbackRecording={playbackRecording}
-                />
-                <SheetMusic notes={currentNotes} currentTime={0} />
-                <PianoKeyboard
-                  activeNotes={midi.activeNotes}
-                  showNoteNames={showNoteNames}
-                  onNoteOn={handleKeyboardNoteOn}
-                />
-              </>
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* Left: Sheet Music (wider) */}
+                <div className="lg:col-span-2 space-y-4">
+                  <p className="text-slate-500 dark:text-slate-400 flex items-center gap-2">
+                    <Music size={16} />
+                    Playing: {currentSong.title} by {currentSong.artist}
+                  </p>
+                  <SheetMusic notes={currentNotes} currentTime={0} />
+                  <PianoKeyboard
+                    activeNotes={midi.activeNotes}
+                    showNoteNames={showNoteNames}
+                    onNoteOn={handleKeyboardNoteOn}
+                  />
+                </div>
+                {/* Right: Practice Tools sidebar */}
+                <div className="space-y-4">
+                  <PracticeTools
+                    state={practiceTools.state}
+                    onTempoChange={practiceTools.setTempo}
+                    onToggleLoop={practiceTools.toggleLoop}
+                    onSetLoopRange={practiceTools.setLoopRange}
+                    onToggleMetronome={practiceTools.toggleMetronome}
+                    onToggleCountIn={practiceTools.toggleCountIn}
+                    onToggleAutoSpeedUp={practiceTools.toggleAutoSpeedUp}
+                    onAutoSpeedUpTargetChange={practiceTools.setAutoSpeedUpTarget}
+                    metronomeTick={practiceTools.metronomeTick}
+                  />
+                  <Recorder
+                    isRecording={recordingSession.isRecording}
+                    onStartRecording={handleStartRecording}
+                    onStopRecording={handleStopRecording}
+                    onPlayRecording={handlePlayRecording}
+                    currentRecordingDuration={getRecordingDuration(recordingSession)}
+                    playbackRecording={playbackRecording}
+                  />
+                </div>
+              </div>
             ) : (
-              <p className="text-[#b0b0d0]">
-                Select a song from the Library to start practicing.
-              </p>
+              <div className="flex flex-col items-center justify-center py-16 space-y-4">
+                <Library size={48} className="text-slate-300 dark:text-slate-600" />
+                <p className="text-slate-500 dark:text-slate-400 text-center">
+                  Select a song from the Library to start practicing.
+                </p>
+                <button
+                  onClick={() => setMode('library')}
+                  className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-cyan-500 to-pink-500 text-white font-medium rounded-lg hover:opacity-90 active:scale-95 transition-all"
+                >
+                  <Library size={16} />
+                  Go to Library
+                </button>
+              </div>
             )}
           </div>
         )}
@@ -384,7 +400,7 @@ const App: React.FC = () => {
                   onBackToLibrary={handleBackToLibrary}
                 />
                 {performanceReport && (
-                  <div className="px-4 pb-6">
+                  <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pb-6">
                     <AIFeedback
                       report={performanceReport}
                       improvementInsight={improvementInsight}
@@ -395,19 +411,17 @@ const App: React.FC = () => {
               </div>
             ) : (
               <>
-                <div className="relative">
-                  <ScoreDisplay
-                    score={score}
-                    lastRating={engineState?.lastRating}
-                    songProgress={
-                      currentSong
-                        ? (engineState?.currentTime ?? 0) / currentSong.duration
-                        : 0
-                    }
-                  />
-                </div>
+                <ScoreDisplay
+                  score={score}
+                  lastRating={engineState?.lastRating}
+                  songProgress={
+                    currentSong
+                      ? (engineState?.currentTime ?? 0) / currentSong.duration
+                      : 0
+                  }
+                />
 
-                <div className="px-4 py-2 flex items-center gap-4">
+                <div className="max-w-6xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-3 flex flex-wrap items-center gap-4">
                   <DifficultySelector
                     selected={selectedDifficulty}
                     onSelect={(d) => {
@@ -419,43 +433,64 @@ const App: React.FC = () => {
                   {gameState === 'idle' && (
                     <button
                       onClick={handleStartGame}
-                      className="px-6 py-2 bg-[#e040fb] text-white font-bold rounded-xl hover:bg-[#e040fb]/80 transition-all"
+                      className="flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-cyan-500 to-pink-500 text-white font-medium rounded-lg hover:opacity-90 active:scale-95 transition-all shadow-lg shadow-pink-500/20"
                       disabled={!currentSong}
                     >
-                      ▶ Play
+                      <Play size={18} />
+                      Play
                     </button>
                   )}
                   {gameState === 'playing' && (
                     <button
                       onClick={pauseGameFn}
-                      className="px-6 py-2 bg-[#40c4ff] text-white font-bold rounded-xl hover:bg-[#40c4ff]/80 transition-all"
+                      className="flex items-center gap-2 px-6 py-2.5 bg-slate-700 hover:bg-slate-600 text-white font-medium rounded-lg border border-slate-600 active:scale-95 transition-all"
                     >
-                      ⏸ Pause
+                      <Pause size={18} />
+                      Pause
                     </button>
                   )}
                   {gameState === 'paused' && (
                     <button
                       onClick={resumeGame}
-                      className="px-6 py-2 bg-[#69f0ae] text-black font-bold rounded-xl hover:bg-[#69f0ae]/80 transition-all"
+                      className="flex items-center gap-2 px-6 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-white font-medium rounded-lg active:scale-95 transition-all"
                     >
-                      ▶ Resume
+                      <Play size={18} />
+                      Resume
                     </button>
                   )}
                 </div>
 
-                <FallingNotes
-                  fallingNotes={engineState?.fallingNotes ?? []}
-                  gameState={gameState}
-                  countdown={engineState?.countdown ?? 0}
-                />
+                <div className="max-w-6xl mx-auto w-full px-4 sm:px-6 lg:px-8">
+                  <FallingNotes
+                    fallingNotes={engineState?.fallingNotes ?? []}
+                    gameState={gameState}
+                    countdown={engineState?.countdown ?? 0}
+                  />
+                </div>
 
-                <div className="px-4 py-2">
+                <div className="max-w-6xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-3">
                   <PianoKeyboard
                     activeNotes={midi.activeNotes}
                     showNoteNames={showNoteNames}
                     onNoteOn={handleKeyboardNoteOn}
                   />
                 </div>
+
+                {!currentSong && gameState === 'idle' && (
+                  <div className="flex flex-col items-center justify-center py-12 space-y-4">
+                    <Music size={48} className="text-slate-300 dark:text-slate-600" />
+                    <p className="text-slate-500 dark:text-slate-400 text-center">
+                      Select a song from the Library to play
+                    </p>
+                    <button
+                      onClick={() => setMode('library')}
+                      className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-cyan-500 to-pink-500 text-white font-medium rounded-lg hover:opacity-90 active:scale-95 transition-all"
+                    >
+                      <Library size={16} />
+                      Go to Library
+                    </button>
+                  </div>
+                )}
               </>
             )}
           </div>
@@ -481,7 +516,7 @@ const App: React.FC = () => {
               onAddFriend={handleAddFriend}
               onRemoveFriend={handleRemoveFriend}
             />
-            <div className="px-6 pb-6">
+            <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 pb-6">
               <SocialFeed
                 weeklyChallenge={weeklyChallenge}
                 unlockedBadges={profile.badges}
@@ -499,8 +534,11 @@ const App: React.FC = () => {
         )}
 
         {mode === 'settings' && (
-          <div className="p-6 space-y-6 max-w-lg" data-testid="settings-page">
-            <h2 className="text-2xl font-bold">Settings</h2>
+          <div className="max-w-xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 space-y-6" data-testid="settings-page">
+            <h2 className="flex items-center gap-2 text-2xl font-bold text-slate-900 dark:text-white">
+              <SettingsIcon size={24} className="text-cyan-500" />
+              Settings
+            </h2>
 
             <MidiConnection
               devices={midi.devices}
@@ -510,38 +548,40 @@ const App: React.FC = () => {
               onSelectDevice={midi.selectDevice}
             />
 
-            <div className="bg-[#1a1a3e] rounded-xl p-4 border border-[#2a2a5e] space-y-4">
-              <h3 className="text-sm font-semibold text-[#b0b0d0] uppercase tracking-wider">
+            <div className="bg-white dark:bg-slate-800/60 rounded-xl p-5 border border-slate-200 dark:border-slate-700/50 space-y-4">
+              <h3 className="flex items-center gap-2 text-sm font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                <Monitor size={16} />
                 Display
               </h3>
               <label className="flex items-center justify-between cursor-pointer">
-                <span className="text-white">Show Note Names</span>
+                <span className="text-slate-900 dark:text-white">Show Note Names</span>
                 <input
                   type="checkbox"
                   checked={showNoteNames}
                   onChange={(e) => setShowNoteNames(e.target.checked)}
-                  className="w-5 h-5 accent-[#e040fb]"
+                  className="w-5 h-5 accent-cyan-500 cursor-pointer"
                   data-testid="note-names-toggle"
                 />
               </label>
             </div>
 
-            <div className="bg-[#1a1a3e] rounded-xl p-4 border border-[#2a2a5e] space-y-4">
-              <h3 className="text-sm font-semibold text-[#b0b0d0] uppercase tracking-wider">
+            <div className="bg-white dark:bg-slate-800/60 rounded-xl p-5 border border-slate-200 dark:border-slate-700/50 space-y-4">
+              <h3 className="flex items-center gap-2 text-sm font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                <Volume2 size={16} />
                 Audio
               </h3>
-              <label className="flex items-center justify-between">
-                <span className="text-white">Volume</span>
+              <label className="flex items-center justify-between gap-4">
+                <span className="text-slate-900 dark:text-white shrink-0">Volume</span>
                 <input
                   type="range"
                   min={0}
                   max={100}
                   value={volume}
                   onChange={(e) => setVolume(Number(e.target.value))}
-                  className="w-48 accent-[#e040fb]"
+                  className="flex-1 accent-cyan-500"
                   data-testid="volume-slider"
                 />
-                <span className="text-[#b0b0d0] text-sm w-12 text-right">{volume}%</span>
+                <span className="text-slate-500 dark:text-slate-400 text-sm w-12 text-right">{volume}%</span>
               </label>
             </div>
           </div>

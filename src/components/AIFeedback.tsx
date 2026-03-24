@@ -1,5 +1,6 @@
 import React from 'react';
 import type { PerformanceReport, LetterGrade } from '../types';
+import { Bot, X, Clock, Music, AlertCircle, ClipboardList, TrendingUp } from 'lucide-react';
 
 interface AIFeedbackProps {
   report: PerformanceReport;
@@ -8,12 +9,21 @@ interface AIFeedbackProps {
 }
 
 const GRADE_COLORS: Record<LetterGrade, string> = {
-  S: '#ffdd00',
-  A: '#69f0ae',
-  B: '#40c4ff',
-  C: '#e040fb',
-  D: '#ff8800',
-  F: '#ff4444',
+  S: 'text-amber-400',
+  A: 'text-emerald-400',
+  B: 'text-cyan-400',
+  C: 'text-pink-400',
+  D: 'text-orange-400',
+  F: 'text-rose-400',
+};
+
+const GRADE_BG: Record<LetterGrade, string> = {
+  S: 'bg-amber-400',
+  A: 'bg-emerald-400',
+  B: 'bg-cyan-400',
+  C: 'bg-pink-400',
+  D: 'bg-orange-400',
+  F: 'bg-rose-400',
 };
 
 const GRADE_LABELS: Record<LetterGrade, string> = {
@@ -29,12 +39,17 @@ const AIFeedback: React.FC<AIFeedbackProps> = ({ report, improvementInsight, onC
   const gradeColor = GRADE_COLORS[report.letterGrade];
 
   return (
-    <div className="bg-[#1a1a3e] rounded-xl p-6 border border-[#2a2a5e] space-y-5 max-w-2xl mx-auto" data-testid="ai-feedback">
+    <div className="bg-white dark:bg-slate-800/60 rounded-xl p-6 border border-slate-200 dark:border-slate-700/50 space-y-5 max-w-2xl mx-auto" data-testid="ai-feedback">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h3 className="text-xl font-bold text-white">🤖 AI Performance Analysis</h3>
+        <h3 className="flex items-center gap-2 text-xl font-bold text-slate-900 dark:text-white">
+          <Bot size={24} className="text-cyan-500" />
+          AI Performance Analysis
+        </h3>
         {onClose && (
-          <button onClick={onClose} className="text-[#7070a0] hover:text-white text-lg">✕</button>
+          <button onClick={onClose} className="p-1 rounded-lg text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-700 transition-all">
+            <X size={20} />
+          </button>
         )}
       </div>
 
@@ -42,75 +57,82 @@ const AIFeedback: React.FC<AIFeedbackProps> = ({ report, improvementInsight, onC
       <div className="flex items-center gap-6">
         <div className="text-center">
           <div
-            className="text-6xl font-black"
-            style={{ color: gradeColor, textShadow: `0 0 20px ${gradeColor}40` }}
+            className={`text-6xl font-black ${gradeColor}`}
             data-testid="grade-display"
           >
             {report.letterGrade}
           </div>
-          <div className="text-sm text-[#b0b0d0]">{GRADE_LABELS[report.letterGrade]}</div>
+          <div className="text-sm text-slate-500 dark:text-slate-400">{GRADE_LABELS[report.letterGrade]}</div>
         </div>
         <div className="flex-1 space-y-2">
           <div className="flex justify-between text-sm">
-            <span className="text-[#b0b0d0]">Overall Accuracy</span>
-            <span className="text-white font-bold">{report.overallAccuracy.toFixed(1)}%</span>
+            <span className="text-slate-500 dark:text-slate-400">Overall Accuracy</span>
+            <span className="text-slate-900 dark:text-white font-bold">{report.overallAccuracy.toFixed(1)}%</span>
           </div>
-          <div className="w-full bg-[#0a0a1a] rounded-full h-3">
+          <div className="w-full bg-slate-200 dark:bg-slate-900/60 rounded-full h-3">
             <div
-              className="h-3 rounded-full transition-all"
-              style={{
-                width: `${report.overallAccuracy}%`,
-                backgroundColor: gradeColor,
-              }}
+              className={`h-3 rounded-full transition-all ${GRADE_BG[report.letterGrade]}`}
+              style={{ width: `${report.overallAccuracy}%` }}
               data-testid="accuracy-bar"
             />
           </div>
           <div className="flex justify-between text-sm">
-            <span className="text-[#b0b0d0]">Score</span>
-            <span className="text-white font-bold">{report.score.toLocaleString()}</span>
+            <span className="text-slate-500 dark:text-slate-400">Score</span>
+            <span className="text-slate-900 dark:text-white font-bold">{report.score.toLocaleString()}</span>
           </div>
         </div>
       </div>
 
       {/* Improvement tracking */}
       {improvementInsight && (
-        <div className="bg-[#0a0a1a] rounded-lg p-3 border border-[#2a2a5e]" data-testid="improvement-insight">
-          <p className="text-sm text-[#69f0ae]">📈 {improvementInsight}</p>
+        <div className="flex items-start gap-2 bg-emerald-50 dark:bg-emerald-500/10 rounded-lg p-3 border border-emerald-200 dark:border-emerald-500/20" data-testid="improvement-insight">
+          <TrendingUp size={16} className="text-emerald-500 mt-0.5 shrink-0" />
+          <p className="text-sm text-emerald-700 dark:text-emerald-400">{improvementInsight}</p>
         </div>
       )}
 
       {/* Timing Analysis */}
       <div className="space-y-2">
-        <h4 className="text-sm font-semibold text-[#b0b0d0] uppercase tracking-wider">⏱️ Timing Analysis</h4>
-        <div className="bg-[#0a0a1a] rounded-lg p-3 space-y-1">
+        <h4 className="flex items-center gap-2 text-sm font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+          <Clock size={16} />
+          Timing Analysis
+        </h4>
+        <div className="bg-slate-50 dark:bg-slate-900/60 rounded-lg p-3 space-y-1">
           <div className="flex justify-between text-sm">
-            <span className="text-[#7070a0]">Average timing offset</span>
-            <span className="text-white">{report.timingAnalysis.averageDeltaMs > 0 ? '+' : ''}{report.timingAnalysis.averageDeltaMs}ms</span>
+            <span className="text-slate-400 dark:text-slate-500">Average timing offset</span>
+            <span className="text-slate-900 dark:text-white">{report.timingAnalysis.averageDeltaMs > 0 ? '+' : ''}{report.timingAnalysis.averageDeltaMs}ms</span>
           </div>
           <div className="flex justify-between text-sm">
-            <span className="text-[#7070a0]">Rhythm steadiness</span>
-            <span className="text-white">{report.timingAnalysis.steadiness}%</span>
+            <span className="text-slate-400 dark:text-slate-500">Rhythm steadiness</span>
+            <span className="text-slate-900 dark:text-white">{report.timingAnalysis.steadiness}%</span>
           </div>
           {report.timingAnalysis.insights.map((insight, i) => (
-            <p key={i} className="text-sm text-[#b0b0d0] mt-1" data-testid="timing-insight">💡 {insight}</p>
+            <p key={i} className="text-sm text-slate-600 dark:text-slate-400 mt-1" data-testid="timing-insight">
+              <span className="text-cyan-500 mr-1">&#9679;</span> {insight}
+            </p>
           ))}
         </div>
       </div>
 
       {/* Dynamics Analysis */}
       <div className="space-y-2">
-        <h4 className="text-sm font-semibold text-[#b0b0d0] uppercase tracking-wider">🎵 Dynamics Analysis</h4>
-        <div className="bg-[#0a0a1a] rounded-lg p-3 space-y-1">
+        <h4 className="flex items-center gap-2 text-sm font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+          <Music size={16} />
+          Dynamics Analysis
+        </h4>
+        <div className="bg-slate-50 dark:bg-slate-900/60 rounded-lg p-3 space-y-1">
           <div className="flex justify-between text-sm">
-            <span className="text-[#7070a0]">Average velocity</span>
-            <span className="text-white">{report.dynamicsAnalysis.averageVelocity}/127</span>
+            <span className="text-slate-400 dark:text-slate-500">Average velocity</span>
+            <span className="text-slate-900 dark:text-white">{report.dynamicsAnalysis.averageVelocity}/127</span>
           </div>
           <div className="flex justify-between text-sm">
-            <span className="text-[#7070a0]">Dynamic range</span>
-            <span className="text-white">{report.dynamicsAnalysis.velocityRange}</span>
+            <span className="text-slate-400 dark:text-slate-500">Dynamic range</span>
+            <span className="text-slate-900 dark:text-white">{report.dynamicsAnalysis.velocityRange}</span>
           </div>
           {report.dynamicsAnalysis.insights.map((insight, i) => (
-            <p key={i} className="text-sm text-[#b0b0d0] mt-1" data-testid="dynamics-insight">💡 {insight}</p>
+            <p key={i} className="text-sm text-slate-600 dark:text-slate-400 mt-1" data-testid="dynamics-insight">
+              <span className="text-cyan-500 mr-1">&#9679;</span> {insight}
+            </p>
           ))}
         </div>
       </div>
@@ -118,20 +140,23 @@ const AIFeedback: React.FC<AIFeedbackProps> = ({ report, improvementInsight, onC
       {/* Trouble Spots */}
       {report.troubleSpots.length > 0 && (
         <div className="space-y-2">
-          <h4 className="text-sm font-semibold text-[#b0b0d0] uppercase tracking-wider">🔴 Trouble Spots</h4>
+          <h4 className="flex items-center gap-2 text-sm font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+            <AlertCircle size={16} className="text-rose-400" />
+            Trouble Spots
+          </h4>
           <div className="space-y-1">
             {report.troubleSpots.map((spot, i) => (
-              <div key={i} className="bg-[#0a0a1a] rounded-lg p-3 flex items-center gap-3" data-testid="trouble-spot">
+              <div key={i} className="bg-slate-50 dark:bg-slate-900/60 rounded-lg p-3 flex items-center gap-3" data-testid="trouble-spot">
                 <div
-                  className="w-8 h-8 rounded flex items-center justify-center text-xs font-bold"
-                  style={{
-                    backgroundColor: spot.accuracy < 50 ? '#ff444440' : '#ff880040',
-                    color: spot.accuracy < 50 ? '#ff4444' : '#ff8800',
-                  }}
+                  className={`w-8 h-8 rounded-md flex items-center justify-center text-xs font-bold ${
+                    spot.accuracy < 50
+                      ? 'bg-rose-500/10 text-rose-500'
+                      : 'bg-orange-500/10 text-orange-500'
+                  }`}
                 >
                   {spot.accuracy}%
                 </div>
-                <span className="text-sm text-[#b0b0d0]">{spot.description}</span>
+                <span className="text-sm text-slate-600 dark:text-slate-400">{spot.description}</span>
               </div>
             ))}
           </div>
@@ -140,10 +165,13 @@ const AIFeedback: React.FC<AIFeedbackProps> = ({ report, improvementInsight, onC
 
       {/* Practice Suggestions */}
       <div className="space-y-2">
-        <h4 className="text-sm font-semibold text-[#b0b0d0] uppercase tracking-wider">📋 Suggested Practice Plan</h4>
-        <div className="bg-[#0a0a1a] rounded-lg p-3 space-y-2">
+        <h4 className="flex items-center gap-2 text-sm font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+          <ClipboardList size={16} />
+          Suggested Practice Plan
+        </h4>
+        <div className="bg-slate-50 dark:bg-slate-900/60 rounded-lg p-3 space-y-2">
           {report.practiceSuggestions.map((suggestion, i) => (
-            <p key={i} className="text-sm text-[#69f0ae]" data-testid="suggestion">
+            <p key={i} className="text-sm text-emerald-600 dark:text-emerald-400" data-testid="suggestion">
               {i + 1}. {suggestion}
             </p>
           ))}

@@ -5,6 +5,7 @@ import {
   exportRecordingSummary,
 } from '../engine/recordingEngine';
 import { SONG_CATALOG } from '../data/songCatalog';
+import { Circle, Square, Play, Pencil, Clipboard, Trash2, Mic, Archive } from 'lucide-react';
 
 interface RecorderProps {
   isRecording: boolean;
@@ -45,7 +46,6 @@ const Recorder: React.FC<RecorderProps> = ({
   const handleExport = (recording: Recording) => {
     const summary = exportRecordingSummary(recording);
     navigator.clipboard.writeText(summary).catch(() => {
-      // Fallback: create a temporary textarea
       const el = document.createElement('textarea');
       el.value = summary;
       document.body.appendChild(el);
@@ -58,33 +58,36 @@ const Recorder: React.FC<RecorderProps> = ({
   return (
     <div className="space-y-4" data-testid="recorder">
       {/* Recording Controls */}
-      <div className="bg-[#1a1a3e] rounded-xl p-4 border border-[#2a2a5e]">
-        <h3 className="text-sm font-semibold text-[#b0b0d0] uppercase tracking-wider mb-3">🎙️ Recording</h3>
+      <div className="bg-white dark:bg-slate-800/60 rounded-xl p-5 border border-slate-200 dark:border-slate-700/50">
+        <h3 className="flex items-center gap-2 text-sm font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3">
+          <Mic size={16} />
+          Recording
+        </h3>
         <div className="flex items-center gap-3">
           {!isRecording ? (
             <button
               onClick={onStartRecording}
-              className="px-4 py-2 bg-[#ff4444] text-white font-bold rounded-lg hover:bg-[#ff4444]/80 transition-all flex items-center gap-2"
+              className="flex items-center gap-2 px-4 py-2 bg-rose-500 text-white font-medium rounded-lg hover:bg-rose-600 active:scale-95 transition-all"
               data-testid="record-btn"
             >
-              <span className="w-3 h-3 rounded-full bg-white" />
+              <Circle size={14} className="fill-white" />
               Record
             </button>
           ) : (
             <button
               onClick={onStopRecording}
-              className="px-4 py-2 bg-[#ff4444] text-white font-bold rounded-lg animate-pulse flex items-center gap-2"
+              className="flex items-center gap-2 px-4 py-2 bg-rose-500 text-white font-medium rounded-lg animate-pulse active:scale-95 transition-all"
               data-testid="stop-btn"
             >
-              <span className="w-3 h-3 bg-white" />
+              <Square size={14} className="fill-white" />
               Stop ({currentRecordingDuration.toFixed(1)}s)
             </button>
           )}
 
           {isRecording && (
             <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-[#ff4444] animate-pulse" />
-              <span className="text-sm text-[#ff4444]">Recording...</span>
+              <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse" />
+              <span className="text-sm text-rose-500">Recording...</span>
             </div>
           )}
         </div>
@@ -92,18 +95,19 @@ const Recorder: React.FC<RecorderProps> = ({
 
       {/* Playback progress */}
       {playbackRecording && (
-        <div className="bg-[#1a1a3e] rounded-xl p-4 border border-[#40c4ff]/30" data-testid="playback-panel">
+        <div className="bg-white dark:bg-slate-800/60 rounded-xl p-5 border border-cyan-200 dark:border-cyan-500/30" data-testid="playback-panel">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm text-white font-medium">
-              ▶ Playing: {playbackRecording.name}
+            <span className="flex items-center gap-2 text-sm text-slate-900 dark:text-white font-medium">
+              <Play size={14} className="text-cyan-500" />
+              Playing: {playbackRecording.name}
             </span>
-            <span className="text-xs text-[#7070a0]">
+            <span className="text-xs text-slate-400 dark:text-slate-500">
               {Math.round(playbackProgress * playbackRecording.duration)}s / {Math.round(playbackRecording.duration)}s
             </span>
           </div>
-          <div className="w-full bg-[#0a0a1a] rounded-full h-2">
+          <div className="w-full bg-slate-200 dark:bg-slate-900/60 rounded-full h-2">
             <div
-              className="h-2 rounded-full bg-[#40c4ff] transition-all"
+              className="h-2 rounded-full bg-cyan-500 transition-all"
               style={{ width: `${playbackProgress * 100}%` }}
             />
           </div>
@@ -111,29 +115,30 @@ const Recorder: React.FC<RecorderProps> = ({
       )}
 
       {/* Recording Library */}
-      <div className="bg-[#1a1a3e] rounded-xl p-4 border border-[#2a2a5e]">
-        <h3 className="text-sm font-semibold text-[#b0b0d0] uppercase tracking-wider mb-3">
-          📼 Recording Library ({recordings.length})
+      <div className="bg-white dark:bg-slate-800/60 rounded-xl p-5 border border-slate-200 dark:border-slate-700/50">
+        <h3 className="flex items-center gap-2 text-sm font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3">
+          <Archive size={16} />
+          Recording Library ({recordings.length})
         </h3>
 
         {recordings.length === 0 ? (
-          <p className="text-[#7070a0] text-sm">No recordings yet. Start playing and hit Record!</p>
+          <p className="text-slate-400 dark:text-slate-500 text-sm">No recordings yet. Start playing and hit Record!</p>
         ) : (
           <div className="space-y-2 max-h-[400px] overflow-y-auto" data-testid="recording-list">
             {[...recordings].reverse().map(recording => {
               const songName = SONG_CATALOG.find(s => s.id === recording.songId)?.title ?? recording.songId;
               return (
-                <div key={recording.id} className="bg-[#0a0a1a] rounded-lg p-3 space-y-2" data-testid="recording-item">
+                <div key={recording.id} className="bg-slate-50 dark:bg-slate-900/60 rounded-lg p-3 space-y-2" data-testid="recording-item">
                   <div className="flex items-center justify-between">
                     <div>
-                      <span className="text-sm text-white font-medium">{recording.name}</span>
-                      <div className="text-xs text-[#7070a0]">
-                        {songName} • {recording.difficulty} • {new Date(recording.date).toLocaleDateString()}
+                      <span className="text-sm text-slate-900 dark:text-white font-medium">{recording.name}</span>
+                      <div className="text-xs text-slate-400 dark:text-slate-500">
+                        {songName} &bull; {recording.difficulty} &bull; {new Date(recording.date).toLocaleDateString()}
                       </div>
                     </div>
                     <div className="flex items-center gap-3 text-xs">
-                      <span className="text-white">{recording.score.toLocaleString()}</span>
-                      <span className="text-[#69f0ae]">{recording.accuracy}%</span>
+                      <span className="text-slate-900 dark:text-white">{recording.score.toLocaleString()}</span>
+                      <span className="text-emerald-500">{recording.accuracy}%</span>
                     </div>
                   </div>
 
@@ -145,50 +150,56 @@ const Recorder: React.FC<RecorderProps> = ({
                         value={journalText}
                         onChange={(e) => setJournalText(e.target.value)}
                         placeholder="Add a note..."
-                        className="flex-1 bg-[#1a1a3e] border border-[#2a2a5e] rounded px-2 py-1 text-white text-xs"
+                        className="flex-1 rounded-md border px-2 py-1 text-xs bg-white border-slate-200 text-slate-900 dark:bg-slate-800/60 dark:border-slate-700/50 dark:text-white"
                         data-testid="journal-input"
                       />
                       <button
                         onClick={() => handleSaveJournal(recording.id)}
-                        className="text-xs text-[#69f0ae] font-bold"
+                        className="text-xs text-emerald-500 font-bold"
                       >
                         Save
                       </button>
                     </div>
                   ) : recording.journalNote ? (
-                    <p className="text-xs text-[#b0b0d0] italic">📝 {recording.journalNote}</p>
+                    <p className="flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400 italic">
+                      <Pencil size={10} />
+                      {recording.journalNote}
+                    </p>
                   ) : null}
 
                   {/* Actions */}
                   <div className="flex gap-2">
                     <button
                       onClick={() => onPlayRecording(recording)}
-                      className="px-3 py-1 bg-[#40c4ff]/20 text-[#40c4ff] rounded text-xs font-bold"
+                      className="flex items-center gap-1 px-3 py-1 bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 rounded-md text-xs font-bold"
                       data-testid="play-recording-btn"
                     >
-                      ▶ Play
+                      <Play size={12} />
+                      Play
                     </button>
                     <button
                       onClick={() => {
                         setEditingJournalId(recording.id);
                         setJournalText(recording.journalNote || '');
                       }}
-                      className="px-3 py-1 bg-[#e040fb]/20 text-[#e040fb] rounded text-xs font-bold"
+                      className="flex items-center gap-1 px-3 py-1 bg-pink-500/10 text-pink-600 dark:text-pink-400 rounded-md text-xs font-bold"
                     >
-                      📝 Note
+                      <Pencil size={12} />
+                      Note
                     </button>
                     <button
                       onClick={() => handleExport(recording)}
-                      className="px-3 py-1 bg-[#69f0ae]/20 text-[#69f0ae] rounded text-xs font-bold"
+                      className="flex items-center gap-1 px-3 py-1 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-md text-xs font-bold"
                     >
-                      📋 Copy
+                      <Clipboard size={12} />
+                      Copy
                     </button>
                     <button
                       onClick={() => handleDelete(recording.id)}
-                      className="px-3 py-1 bg-[#ff4444]/20 text-[#ff4444] rounded text-xs font-bold"
+                      className="flex items-center gap-1 px-3 py-1 bg-rose-500/10 text-rose-600 dark:text-rose-400 rounded-md text-xs font-bold"
                       data-testid="delete-recording-btn"
                     >
-                      🗑️
+                      <Trash2 size={12} />
                     </button>
                   </div>
                 </div>

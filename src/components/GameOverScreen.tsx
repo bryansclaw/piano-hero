@@ -1,5 +1,6 @@
 import React from 'react';
 import type { GameScore } from '../types';
+import { RotateCcw, Library, Star } from 'lucide-react';
 
 interface GameOverScreenProps {
   score: GameScore;
@@ -17,50 +18,50 @@ const GameOverScreen: React.FC<GameOverScreenProps> = ({
   const stars = score.stars;
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-[400px] gap-6" data-testid="game-over-screen">
-      <h2 className="text-3xl font-bold text-white">Song Complete!</h2>
-      <p className="text-[#b0b0d0] text-lg">{songTitle}</p>
+    <div className="max-w-6xl mx-auto w-full flex flex-col items-center justify-center min-h-[400px] gap-6 px-4 sm:px-6 lg:px-8 py-8" data-testid="game-over-screen">
+      <h2 className="text-3xl font-bold text-slate-900 dark:text-white">Song Complete!</h2>
+      <p className="text-slate-500 dark:text-slate-400 text-lg">{songTitle}</p>
 
       {/* Stars */}
-      <div className="flex gap-2 text-4xl" data-testid="stars-display">
+      <div className="flex gap-2" data-testid="stars-display">
         {[1, 2, 3, 4, 5].map((i) => (
-          <span
+          <Star
             key={i}
-            className={`transition-all duration-300 ${i <= stars ? 'scale-110' : 'opacity-30'}`}
-            style={{
-              filter: i <= stars ? 'drop-shadow(0 0 8px #ffdd00)' : 'none',
-            }}
-          >
-            ⭐
-          </span>
+            size={36}
+            className={`transition-all duration-300 ${
+              i <= stars
+                ? 'text-amber-400 fill-amber-400 scale-110 drop-shadow-[0_0_8px_rgba(251,191,36,0.5)]'
+                : 'text-slate-300 dark:text-slate-600'
+            }`}
+          />
         ))}
       </div>
 
       {/* Score breakdown */}
-      <div className="bg-[#1a1a3e] rounded-xl p-6 w-full max-w-md border border-[#2a2a5e]">
+      <div className="bg-white dark:bg-slate-800/60 rounded-xl p-6 w-full max-w-md border border-slate-200 dark:border-slate-700/50">
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <div className="text-3xl font-bold text-white" data-testid="final-score">
+            <div className="text-3xl font-bold bg-gradient-to-r from-cyan-400 to-pink-500 bg-clip-text text-transparent" data-testid="final-score">
               {score.points.toLocaleString()}
             </div>
-            <div className="text-xs text-[#b0b0d0] uppercase">Total Score</div>
+            <div className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wider mt-0.5">Total Score</div>
           </div>
           <div>
-            <div className="text-3xl font-bold text-white">{score.accuracy.toFixed(1)}%</div>
-            <div className="text-xs text-[#b0b0d0] uppercase">Accuracy</div>
+            <div className="text-3xl font-bold text-slate-900 dark:text-white">{score.accuracy.toFixed(1)}%</div>
+            <div className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wider mt-0.5">Accuracy</div>
           </div>
           <div>
-            <div className="text-xl font-bold text-white">{score.maxCombo}x</div>
-            <div className="text-xs text-[#b0b0d0] uppercase">Max Combo</div>
+            <div className="text-xl font-bold text-slate-900 dark:text-white">{score.maxCombo}x</div>
+            <div className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wider mt-0.5">Max Combo</div>
           </div>
           <div>
             <div className="flex gap-3 text-sm">
-              <span className="text-[#ffdd00]">P:{score.perfect}</span>
-              <span className="text-[#69f0ae]">Gr:{score.great}</span>
-              <span className="text-[#40c4ff]">Go:{score.good}</span>
-              <span className="text-[#ff4444]">M:{score.miss}</span>
+              <span className="text-amber-500">P:{score.perfect}</span>
+              <span className="text-emerald-500">Gr:{score.great}</span>
+              <span className="text-cyan-500">Go:{score.good}</span>
+              <span className="text-rose-500">M:{score.miss}</span>
             </div>
-            <div className="text-xs text-[#b0b0d0] uppercase mt-1">Breakdown</div>
+            <div className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wider mt-1">Breakdown</div>
           </div>
         </div>
       </div>
@@ -69,16 +70,18 @@ const GameOverScreen: React.FC<GameOverScreenProps> = ({
       <div className="flex gap-4">
         <button
           onClick={onRetry}
-          className="px-6 py-3 bg-[#e040fb] text-white font-bold rounded-xl hover:bg-[#e040fb]/80 transition-all shadow-lg shadow-[#e040fb]/30"
+          className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-cyan-500 to-pink-500 text-white font-medium rounded-lg hover:opacity-90 active:scale-95 transition-all shadow-lg shadow-pink-500/20"
           data-testid="retry-button"
         >
-          🔄 Retry
+          <RotateCcw size={18} />
+          Retry
         </button>
         <button
           onClick={onBackToLibrary}
-          className="px-6 py-3 bg-[#1a1a3e] text-[#b0b0d0] font-bold rounded-xl border border-[#2a2a5e] hover:text-white hover:border-[#e040fb]/40 transition-all"
+          className="flex items-center gap-2 px-5 py-2.5 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 font-medium rounded-lg border border-slate-200 dark:border-slate-600 hover:bg-slate-200 dark:hover:bg-slate-600 active:scale-95 transition-all"
         >
-          📚 Back to Library
+          <Library size={18} />
+          Back to Library
         </button>
       </div>
     </div>

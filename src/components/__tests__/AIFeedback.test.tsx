@@ -90,7 +90,10 @@ describe('AIFeedback', () => {
   it('calls onClose when close button clicked', () => {
     const onClose = vi.fn();
     render(<AIFeedback report={mockReport} onClose={onClose} />);
-    fireEvent.click(screen.getByText('✕'));
+    // Close button is now an icon button - find by its parent structure
+    const header = screen.getByText('AI Performance Analysis').closest('div');
+    const closeBtn = header?.querySelector('button');
+    fireEvent.click(closeBtn!);
     expect(onClose).toHaveBeenCalled();
   });
 

@@ -73,7 +73,9 @@ describe('Profile', () => {
 
   it('allows editing username', () => {
     render(<Profile {...defaultProps} />);
-    fireEvent.click(screen.getByText('✏️'));
+    // Click the edit button (pencil icon) next to username
+    const editBtn = screen.getByTestId('username-display').parentElement?.querySelector('button');
+    fireEvent.click(editBtn!);
     expect(screen.getByTestId('username-input')).toBeInTheDocument();
   });
 

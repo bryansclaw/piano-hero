@@ -37,7 +37,8 @@ test.describe('Profile', () => {
   });
 
   test('username edit works', async ({ page }) => {
-    await page.click('button:has-text("✏️")');
+    // Click the edit button next to username
+    await page.getByTestId('username-display').locator('..').locator('button').click();
     await expect(page.getByTestId('username-input')).toBeVisible();
     await page.screenshot({ path: 'e2e/screenshots/profile-edit.png' });
   });
