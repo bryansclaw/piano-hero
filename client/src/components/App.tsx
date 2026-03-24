@@ -19,6 +19,7 @@ import Analytics from './Analytics';
 import Curriculum from './Curriculum';
 import Recorder from './Recorder';
 import Profile from './Profile';
+import { useAuth } from '../contexts/AuthContext';
 import { useMidi } from '../hooks/useMidi';
 import { useSongLoader } from '../hooks/useSongLoader';
 import { useGameEngine } from '../hooks/useGameEngine';
@@ -27,45 +28,43 @@ import { useTheme } from '../hooks/useTheme';
 import { createInitialScore } from '../engine/scoring';
 import { generatePerformanceReport, savePerformanceReport, getImprovementInsight } from '../engine/performanceAnalyzer';
 import { timeToMeasure } from '../engine/performanceAnalyzer';
-import { loadProfile, saveProfile, loadFriends, saveFriends, updateStreak, calculateXpFromScore, checkAchievements, generateWeeklyChallenge, levelFromXp } from '../engine/socialEngine';
-import { loadAnalytics, saveAnalytics, recordSession } from '../engine/analyticsEngine';
-import { saveRecording, generateRecordingId, createRecordingSession, startRecording, stopRecording, addRecordingEvent, getRecordingDuration } from '../engine/recordingEngine';
-import { loadCompletedLessons } from '../data/curriculum';
+import { updateStreak, calculateXpFromScore, checkAchievements, generateWeeklyChallenge, levelFromXp, createDefaultProfile } from '../engine/socialEngine';
+import { createRecordingSession, startRecording, stopRecording, addRecordingEvent, getRecordingDuration, generateRecordingId } from '../engine/recordingEngine';
+
+
+// API imports
+import { getScores as apiGetScores, saveScore as apiSaveScore } from '../api/scores';
+import { getProfile as apiGetProfile, updateProfileAfterGame as apiUpdateProfile } from '../api/profile';
+import { getAnalytics as apiGetAnalytics, recordSession as apiRecordSession, updateKeyAccuracy as apiUpdateKeyAccuracy } from '../api/analytics';
+import { getFriends as apiGetFriends, addFriend as apiAddFriend, removeFriend as apiRemoveFriend } from '../api/friends';
+import { saveRecording as apiSaveRecording } from '../api/recordings';
+import { getCurriculumProgress as apiGetCurriculum } from '../api/curriculum';
+
 import {
   Play, Pause, Music, Library, Volume2, Monitor, Settings as SettingsIcon,
 } from 'lucide-react';
 
-function loadHighScores(): Record<string, Record<Difficulty, HighScore>> {
-  try {
-    const data = localStorage.getItem('piano-hero-scores');
-    return data ? JSON.parse(data) : {};
-  } catch {
-    return {};
-  }
-}
-
-function saveHighScores(scores: Record<string, Record<Difficulty, HighScore>>) {
-  try {
-    localStorage.setItem('piano-hero-scores', JSON.stringify(scores));
-  } catch (e) {
-    console.error('[PianoHero] Failed to save high scores:', e);
-  }
-}
-
 const App: React.FC = () => {
+  const { user, logout } = useAuth();
   const [mode, setMode] = useState<AppMode>('library');
-  const [highScores, setHighScores] = useState(loadHighScores);
+  const [highScores, setHighScores] = useState<Record<string, Record<Difficulty, HighScore>>>({});
   const [selectedDifficulty, setSelectedDifficulty] = useState<Difficulty>('easy');
   const [showNoteNames, setShowNoteNames] = useState(true);
   const [volume, setVolume] = useState(80);
+  const [dataLoaded, setDataLoaded] = useState(false);
 
   const { theme, toggleTheme } = useTheme();
 
   // New feature state
-  const [profile, setProfile] = useState<PlayerProfile>(loadProfile);
-  const [friends, setFriends] = useState<Friend[]>(loadFriends);
-  const [analytics, setAnalytics] = useState(loadAnalytics);
-  const [completedLessons] = useState(loadCompletedLessons);
+  const [profile, setProfile] = useState<PlayerProfile>(createDefaultProfile);
+  const [friends, setFriends] = useState<Friend[]>([]);
+  const [analytics, setAnalytics] = useState({
+    dailyPractice: [] as any[],
+    keyAccuracy: [] as any[],
+    sessionHistory: [] as any[],
+    songAccuracyTrends: {} as Record<string, any[]>,
+  });
+  const [completedLessons, setCompletedLessons] = useState<Set<string>>(new Set());
   const [performanceReport, setPerformanceReport] = useState<PerformanceReport | null>(null);
   const [noteTimings, setNoteTimings] = useState<NoteTimingData[]>([]);
   const [recentUnlocks, setRecentUnlocks] = useState<string[]>([]);
@@ -73,6 +72,48 @@ const App: React.FC = () => {
   const [playbackRecording, setPlaybackRecording] = useState<Recording | null>(null);
 
   const weeklyChallenge = useMemo(() => generateWeeklyChallenge(), []);
+
+  // Load data from API on mount
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadData() {
+      try {
+        const [scoresRes, profileRes, analyticsRes, friendsRes, curriculumRes] = await Promise.all([
+          apiGetScores(),
+          apiGetProfile(),
+          apiGetAnalytics(),
+          apiGetFriends(),
+          apiGetCurriculum(),
+        ]);
+
+        if (cancelled) return;
+
+        if (scoresRes.success && scoresRes.data) {
+          setHighScores(scoresRes.data);
+        }
+        if (profileRes.success && profileRes.data) {
+          setProfile(profileRes.data);
+        }
+        if (analyticsRes.success && analyticsRes.data) {
+          setAnalytics(analyticsRes.data);
+        }
+        if (friendsRes.success && friendsRes.data) {
+          setFriends(friendsRes.data);
+        }
+        if (curriculumRes.success && curriculumRes.data) {
+          setCompletedLessons(new Set(curriculumRes.data.completedLessons));
+        }
+      } catch (err) {
+        console.error('[PianoHero] Failed to load data from API, using defaults:', err);
+      } finally {
+        if (!cancelled) setDataLoaded(true);
+      }
+    }
+
+    loadData();
+    return () => { cancelled = true; };
+  }, []);
 
   const { currentSong, currentNotes, loadSong, loadCustomSong } = useSongLoader();
 
@@ -194,7 +235,16 @@ const App: React.FC = () => {
           date: new Date().toISOString(),
         };
         setHighScores(newScores);
-        saveHighScores(newScores);
+
+        // Save to API
+        apiSaveScore({
+          songId: currentSong.id,
+          difficulty: selectedDifficulty,
+          score: score.points,
+          stars: score.stars,
+          accuracy: score.accuracy,
+          maxCombo: score.maxCombo,
+        }).catch(err => console.error('[PianoHero] Failed to save score:', err));
       }
 
       const report = generatePerformanceReport(
@@ -208,6 +258,31 @@ const App: React.FC = () => {
       setPerformanceReport(report);
       savePerformanceReport(report);
 
+      // Record analytics session via API
+      apiRecordSession({
+        songId: currentSong.id,
+        difficulty: selectedDifficulty,
+        score: score.points,
+        accuracy: score.accuracy,
+        duration: engineState.currentTime,
+      }).catch(err => console.error('[PianoHero] Failed to record session:', err));
+
+      // Update key accuracy via API
+      if (noteTimings.length > 0) {
+        const keyUpdates = new Map<number, { correct: number; total: number }>();
+        for (const t of noteTimings) {
+          const existing = keyUpdates.get(t.midi) || { correct: 0, total: 0 };
+          existing.total += 1;
+          if (t.rating !== 'miss') existing.correct += 1;
+          keyUpdates.set(t.midi, existing);
+        }
+        const keys = Array.from(keyUpdates.entries()).map(([midi, data]) => ({
+          midi, correct: data.correct, total: data.total,
+        }));
+        apiUpdateKeyAccuracy(keys).catch(err => console.error('[PianoHero] Failed to update key accuracy:', err));
+      }
+
+      // Update local analytics state
       const session = {
         songId: currentSong.id,
         difficulty: selectedDifficulty,
@@ -216,9 +291,11 @@ const App: React.FC = () => {
         accuracy: score.accuracy,
         duration: engineState.currentTime,
       };
-      const updatedAnalytics = recordSession(analytics, session, noteTimings);
-      setAnalytics(updatedAnalytics);
-      saveAnalytics(updatedAnalytics);
+      setAnalytics(prev => {
+        const updated = { ...prev };
+        updated.sessionHistory = [...updated.sessionHistory, session].slice(-200);
+        return updated;
+      });
 
       const xpEarned = calculateXpFromScore(score.points, score.accuracy, score.stars);
       const updatedProfile = updateStreak({
@@ -240,7 +317,9 @@ const App: React.FC = () => {
       );
       setRecentUnlocks(newUnlocks);
       setProfile(updatedProfile);
-      saveProfile(updatedProfile);
+
+      // Save profile to API
+      apiUpdateProfile(updatedProfile).catch(err => console.error('[PianoHero] Failed to save profile:', err));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [gameState]);
@@ -261,25 +340,26 @@ const App: React.FC = () => {
   const handleUpdateProfile = useCallback((updates: Partial<PlayerProfile>) => {
     setProfile(prev => {
       const updated = { ...prev, ...updates };
-      saveProfile(updated);
+      // Save to API
+      apiUpdateProfile(updated).catch(err => console.error('[PianoHero] Failed to save profile:', err));
       return updated;
     });
   }, []);
 
   const handleAddFriend = useCallback((username: string) => {
-    setFriends(prev => {
-      const updated = [...prev, { username, avatarIndex: Math.floor(Math.random() * 12), level: Math.floor(Math.random() * 10) + 1, xp: Math.floor(Math.random() * 5000) }];
-      saveFriends(updated);
-      return updated;
-    });
+    apiAddFriend(username).then(res => {
+      if (res.success && res.data) {
+        setFriends(prev => [...prev, res.data!]);
+      }
+    }).catch(err => console.error('[PianoHero] Failed to add friend:', err));
   }, []);
 
   const handleRemoveFriend = useCallback((username: string) => {
-    setFriends(prev => {
-      const updated = prev.filter(f => f.username !== username);
-      saveFriends(updated);
-      return updated;
-    });
+    apiRemoveFriend(username).then(res => {
+      if (res.success) {
+        setFriends(prev => prev.filter(f => f.username !== username));
+      }
+    }).catch(err => console.error('[PianoHero] Failed to remove friend:', err));
   }, []);
 
   const handleStartRecording = useCallback(() => {
@@ -309,7 +389,8 @@ const App: React.FC = () => {
         accuracy: engineState?.score.accuracy ?? 0,
         journalNote: '',
       };
-      saveRecording(recording);
+      // Save to API
+      apiSaveRecording(recording).catch(err => console.error('[PianoHero] Failed to save recording:', err));
     }
     setRecordingSession(createRecordingSession('', 'easy'));
   }, [recordingSession, currentSong, selectedDifficulty, engineState]);
@@ -370,6 +451,19 @@ const App: React.FC = () => {
   }, [analytics.sessionHistory, currentSong]);
 
   const score = engineState?.score ?? createInitialScore();
+
+  if (!dataLoaded) {
+    return (
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-cyan-500 to-pink-500 rounded-2xl animate-pulse">
+            <span className="text-3xl">🎹</span>
+          </div>
+          <p className="text-slate-500 dark:text-slate-400 text-sm">Loading your data...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <ErrorBoundary>
@@ -676,6 +770,25 @@ const App: React.FC = () => {
                 />
                 <span className="text-slate-500 dark:text-slate-400 text-sm w-12 text-right">{volume}%</span>
               </label>
+            </div>
+
+            {/* Account section */}
+            <div className="bg-white dark:bg-slate-800/60 rounded-xl p-5 border border-slate-200 dark:border-slate-700/50 space-y-4">
+              <h3 className="flex items-center gap-2 text-sm font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                Account
+              </h3>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-slate-900 dark:text-white font-medium">{user?.username}</p>
+                  <p className="text-slate-500 dark:text-slate-400 text-sm">{user?.email}</p>
+                </div>
+                <button
+                  onClick={logout}
+                  className="px-4 py-2 text-sm font-medium text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30 transition-all"
+                >
+                  Log Out
+                </button>
+              </div>
             </div>
           </div>
         )}
